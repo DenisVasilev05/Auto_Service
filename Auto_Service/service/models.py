@@ -99,10 +99,10 @@ class Payment(models.Model):
 
 class Schedule(models.Model):
     facility = models.OneToOneField('Facility', on_delete=models.CASCADE, related_name='schedule')
-    opening_time = models.TimeField()
-    closing_time = models.TimeField()
+    opening_time = models.TimeField(default='09:00')
+    closing_time = models.TimeField(default='17:00')
     is_open_weekends = models.BooleanField(default=False)
-    max_daily_appointments = models.PositiveIntegerField()
+    max_daily_appointments = models.PositiveIntegerField(default=10)
     
     def __str__(self):
         return f"Schedule for {self.facility}"
@@ -149,6 +149,11 @@ class Facility(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    def save(self, *args, **kwargs):
+        if not self.repair_shop_id:
+            self.repair_shop = RepairShop.get_instance()
+        super(Facility, self).save(*args, **kwargs)
+
     class Meta:
         verbose_name_plural = "Facilities"
 
@@ -168,7 +173,6 @@ class RepairShop(models.Model):
 
     def save(self, *args, **kwargs):
         if not self.pk and RepairShop.objects.exists():
-            # If you try to create a new instance and one already exists
             raise ValidationError('Only one repair shop instance can exist.')
         return super(RepairShop, self).save(*args, **kwargs)
 
@@ -189,7 +193,8 @@ class RepairShop(models.Model):
 
     class Meta:
         verbose_name = 'Repair Shop'
-        verbose_name_plural = 'Repair Shop'  # Singular since there should be only one
+        # Singular since there should be only one
+        verbose_name_plural = 'Repair Shop'
 
     def __str__(self):
         return self.name
@@ -201,11 +206,24 @@ class Analytics(models.Model):
     average_rating = models.DecimalField(max_digits=3, decimal_places=2, default=0)
     last_updated = models.DateTimeField(auto_now=True)
 
+    def save(self, *args, **kwargs):
+        if not self.repair_shop_id:
+            self.repair_shop = RepairShop.get_instance()
+        super(Analytics, self).save(*args, **kwargs)
+
     class Meta:
         verbose_name_plural = "Analytics"
 
     def __str__(self):
         return f"Analytics for {self.repair_shop}"
+
+@receiver(post_save, sender=RepairShop)
+def create_repair_shop_analytics(sender, instance, created, **kwargs):
+    """
+    Signal handler to automatically create Analytics instance when RepairShop is created
+    """
+    if created:
+        Analytics.objects.create(repair_shop=instance)
 
 class ServiceType(models.Model):
     name = models.CharField(max_length=100)
@@ -277,3 +295,11 @@ class EventLog(models.Model):
 
     def __str__(self):
         return f"{self.event_type} - {self.customer} - {self.created_at.date()}"
+
+@receiver(post_save, sender=Facility)
+def create_facility_schedule(sender, instance, created, **kwargs):
+    """
+    Signal handler to automatically create Schedule instance when Facility is created
+    """
+    if created:
+        Schedule.objects.create(facility=instance)
