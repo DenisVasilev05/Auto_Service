@@ -104,6 +104,17 @@ class Schedule(models.Model):
     is_open_weekends = models.BooleanField(default=False)
     max_daily_appointments = models.PositiveIntegerField(default=10)
     
+    def clean(self):
+        if self.opening_time and self.closing_time and self.opening_time >= self.closing_time:
+            raise ValidationError({
+                'closing_time': 'Closing time must be later than opening time.'
+            })
+
+    def save(self, *args, **kwargs):
+        # Validate working hours
+        self.full_clean()
+        super().save(*args, **kwargs)
+
     def __str__(self):
         return f"Schedule for {self.facility}"
 
