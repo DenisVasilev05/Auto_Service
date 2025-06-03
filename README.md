@@ -2,7 +2,7 @@
 
 # Auto Service Management System
 
-## Quick Setup
+## Setup
 
 1. Clone the repository
 ```bash
@@ -29,15 +29,15 @@ python manage.py migrate
 
 5. Load initial data
 ```bash
-python manage.py loaddata service/fixtures/populate.json
+python manage.py load_initial_data
 ```
 
 6. Run development server
 ```bash
-python manage.py runserver
+python manage.py runserver 8000
 ```
 
 Default users:
-- Admin: username=admin, password=password123
-- Owner: username=owner, password=password123
-- Customer: username=customer1, password=password123
+- Admin: username=admin, password=admin123
+- Owner: username=owner, password=owner123
+- Customer: username=customer1, password=customer1123
