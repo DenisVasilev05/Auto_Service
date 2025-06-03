@@ -1,0 +1,194 @@
+[
+    {
+        "model": "auth.user",
+        "pk": 1,
+        "fields": {
+            "username": "admin",
+            "first_name": "Denis",
+            "last_name": "Vasilev",
+            "email": "denisvasilev@autoservice.com",
+            "is_staff": true,
+            "is_superuser": true,
+            "is_active": true,
+            "date_joined": "2024-03-15T10:00:00Z"
+        }
+    },
+    {
+        "model": "auth.user",
+        "pk": 2,
+        "fields": {
+            "username": "owner",
+            "first_name": "John",
+            "last_name": "Duton",
+            "email": "johnduton@autoservice.com",
+            "is_active": true,
+            "date_joined": "2024-03-15T10:00:00Z"
+        }
+    },
+    {
+        "model": "auth.user",
+        "pk": 3,
+        "fields": {
+            "username": "customer1",
+            "first_name": "Alice",
+            "last_name": "Wonderland",
+            "email": "alicewonderland@gmail.com",
+            "is_active": true,
+            "date_joined": "2024-03-15T10:00:00Z"
+        }
+    },
+    {
+        "model": "service.baseuser",
+        "pk": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+        "fields": {
+            "user": 1,
+            "user_type": "ADMIN",
+            "phone_number": "+436649876543210",
+            "address": "123 Admin St",
+            "created_at": "2024-03-15T10:00:00Z",
+            "updated_at": "2024-03-15T10:00:00Z"
+        }
+    },
+    {
+        "model": "service.baseuser",
+        "pk": "f47ac10b-58cc-4372-a567-0e02b2c3d480",
+        "fields": {
+            "user": 2,
+            "user_type": "OWNER",
+            "phone_number": "+436649876543210",
+            "address": "456 Owner Ave",
+            "created_at": "2024-03-15T10:00:00Z",
+            "updated_at": "2024-03-15T10:00:00Z"
+        }
+    },
+    {
+        "model": "service.baseuser",
+        "pk": "f47ac10b-58cc-4372-a567-0e02b2c3d481",
+        "fields": {
+            "user": 3,
+            "user_type": "CUSTOMER",
+            "phone_number": "+436649876543210",
+            "address": "789 Customer Rd",
+            "created_at": "2024-03-15T10:00:00Z",
+            "updated_at": "2024-03-15T10:00:00Z"
+        }
+    },
+    {
+        "model": "service.customer",
+        "pk": "f47ac10b-58cc-4372-a567-0e02b2c3d482",
+        "fields": {
+            "base_user": "f47ac10b-58cc-4372-a567-0e02b2c3d481",
+            "preferred_contact_method": "EMAIL",
+            "created_at": "2024-03-15T10:00:00Z",
+            "updated_at": "2024-03-15T10:00:00Z"
+        }
+    },
+    {
+        "model": "service.repairshop",
+        "pk": "f47ac10b-58cc-4372-a567-0e02b2c3d483",
+        "fields": {
+            "name": "Auto Service",
+            "address": "Alauntalstrasse, Krems a.d. Donau, Austria",
+            "phone_number": "+436649876543210",
+            "email": "contact@autoservice.com",
+            "owner": "f47ac10b-58cc-4372-a567-0e02b2c3d480",
+            "created_at": "2024-03-15T10:00:00Z",
+            "updated_at": "2024-03-15T10:00:00Z"
+        }
+    },
+    {
+        "model": "service.facility",
+        "pk": "f47ac10b-58cc-4372-a567-0e02b2c3d484",
+        "fields": {
+            "name": "Main Service Center",
+            "facility_type": "MAINTENANCE",
+            "description": "General maintenance and repairs",
+            "is_active": true,
+            "repair_shop": "f47ac10b-58cc-4372-a567-0e02b2c3d483",
+            "created_at": "2024-03-15T10:00:00Z",
+            "updated_at": "2024-03-15T10:00:00Z"
+        }
+    },
+    {
+        "model": "service.facility",
+        "pk": "f47ac10b-58cc-4372-a567-0e02b2c3d485",
+        "fields": {
+            "name": "Premium Paint Shop",
+            "facility_type": "PAINT",
+            "description": "Professional painting and finishing",
+            "is_active": true,
+            "repair_shop": "f47ac10b-58cc-4372-a567-0e02b2c3d483",
+            "created_at": "2024-03-15T10:00:00Z",
+            "updated_at": "2024-03-15T10:00:00Z"
+        }
+    },
+    {
+        "model": "service.schedule",
+        "pk": "f47ac10b-58cc-4372-a567-0e02b2c3d486",
+        "fields": {
+            "facility": "f47ac10b-58cc-4372-a567-0e02b2c3d484",
+            "opening_time": "09:00:00",
+            "closing_time": "17:00:00",
+            "is_open_weekends": false,
+            "max_daily_appointments": 10,
+            "created_at": "2024-03-15T10:00:00Z",
+            "updated_at": "2024-03-15T10:00:00Z"
+        }
+    },
+    {
+        "model": "service.schedule",
+        "pk": "f47ac10b-58cc-4372-a567-0e02b2c3d487",
+        "fields": {
+            "facility": "f47ac10b-58cc-4372-a567-0e02b2c3d485",
+            "opening_time": "09:00:00",
+            "closing_time": "17:00:00",
+            "is_open_weekends": false,
+            "max_daily_appointments": 5,
+            "created_at": "2024-03-15T10:00:00Z",
+            "updated_at": "2024-03-15T10:00:00Z"
+        }
+    },
+    {
+        "model": "service.servicetype",
+        "pk": "f47ac10b-58cc-4372-a567-0e02b2c3d488",
+        "fields": {
+            "name": "Oil Change",
+            "description": "Standard oil change service",
+            "duration_minutes": 30,
+            "price": "49.99",
+            "facility": "f47ac10b-58cc-4372-a567-0e02b2c3d484",
+            "maintenance_interval_months": 6,
+            "created_at": "2024-03-15T10:00:00Z",
+            "updated_at": "2024-03-15T10:00:00Z"
+        }
+    },
+    {
+        "model": "service.servicetype",
+        "pk": "f47ac10b-58cc-4372-a567-0e02b2c3d489",
+        "fields": {
+            "name": "Full Body Paint",
+            "description": "Complete vehicle painting service",
+            "duration_minutes": 480,
+            "price": "1999.99",
+            "facility": "f47ac10b-58cc-4372-a567-0e02b2c3d485",
+            "maintenance_interval_months": null,
+            "created_at": "2024-03-15T10:00:00Z",
+            "updated_at": "2024-03-15T10:00:00Z"
+        }
+    },
+    {
+        "model": "service.vehicle",
+        "pk": "f47ac10b-58cc-4372-a567-0e02b2c3d490",
+        "fields": {
+            "owner": "f47ac10b-58cc-4372-a567-0e02b2c3d482",
+            "vin": "1HGCM82633A123456",
+            "make": "Honda",
+            "model": "Accord",
+            "year": 2020,
+            "color": "Silver",
+            "license_plate": "ABC123",
+            "created_at": "2024-03-15T10:00:00Z",
+            "updated_at": "2024-03-15T10:00:00Z"
+        }
+    }
+] 

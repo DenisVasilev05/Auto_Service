@@ -5,8 +5,18 @@ from django.utils import timezone
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.core.exceptions import ValidationError
+import uuid
 
-class BaseUser(models.Model):
+class BaseModel(models.Model):
+    """Abstract base model with UUID primary key"""
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    created_at = models.DateTimeField(default=timezone.now)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        abstract = True
+
+class BaseUser(BaseModel):
     USER_TYPES = [
         ('ADMIN', 'Administrator'),
         ('OWNER', 'Owner'),
@@ -22,13 +32,11 @@ class BaseUser(models.Model):
     user_type = models.CharField(max_length=20, choices=USER_TYPES)
     phone_number = models.CharField(max_length=15)
     address = models.TextField()
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return f"{self.user.get_full_name()} - {self.get_user_type_display()}"
 
-class Employee(models.Model):
+class Employee(BaseModel):
     base_user = models.OneToOneField(BaseUser, on_delete=models.CASCADE)
     supervisor = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True, 
                                  limit_choices_to={'base_user__user_type': 'SUPERVISOR'})
@@ -39,7 +47,7 @@ class Employee(models.Model):
     def __str__(self):
         return f"{self.base_user.user.get_full_name()} - {self.base_user.get_user_type_display()}"
 
-class Customer(models.Model):
+class Customer(BaseModel):
     base_user = models.OneToOneField(BaseUser, on_delete=models.CASCADE)
     preferred_contact_method = models.CharField(
         max_length=10,
@@ -50,7 +58,7 @@ class Customer(models.Model):
     def __str__(self):
         return f"{self.base_user.user.get_full_name()}"
 
-class Notification(models.Model):
+class Notification(BaseModel):
     NOTIFICATION_TYPES = [
         ('MAINTENANCE_DUE', 'Maintenance Due'),
         ('APPOINTMENT_REMINDER', 'Appointment Reminder'),
@@ -58,12 +66,11 @@ class Notification(models.Model):
         ('REVIEW_REQUEST', 'Review Request'),
     ]
 
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='notifications')
+    user = models.ForeignKey(BaseUser, on_delete=models.CASCADE, related_name='notifications')
     type = models.CharField(max_length=50, choices=NOTIFICATION_TYPES)
     title = models.CharField(max_length=200)
     message = models.TextField()
     is_read = models.BooleanField(default=False)
-    created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         ordering = ['-created_at']
@@ -71,7 +78,7 @@ class Notification(models.Model):
     def __str__(self):
         return f"{self.type} for {self.user}"
 
-class Payment(models.Model):
+class Payment(BaseModel):
     PAYMENT_STATUS = [
         ('PENDING', 'Pending'),
         ('COMPLETED', 'Completed'),
@@ -91,13 +98,11 @@ class Payment(models.Model):
     payment_method = models.CharField(max_length=20, choices=PAYMENT_METHODS)
     status = models.CharField(max_length=20, choices=PAYMENT_STATUS, default='PENDING')
     transaction_id = models.CharField(max_length=100, unique=True, null=True, blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return f"Payment for {self.appointment} - {self.status}"
 
-class Schedule(models.Model):
+class Schedule(BaseModel):
     facility = models.OneToOneField('Facility', on_delete=models.CASCADE, related_name='schedule')
     opening_time = models.TimeField(default='09:00')
     closing_time = models.TimeField(default='17:00')
@@ -118,7 +123,7 @@ class Schedule(models.Model):
     def __str__(self):
         return f"Schedule for {self.facility}"
 
-class Vehicle(models.Model):
+class Vehicle(BaseModel):
     owner = models.ForeignKey(Customer, on_delete=models.CASCADE, related_name='vehicles')
     vin = models.CharField(max_length=17, unique=True)
     make = models.CharField(max_length=50)
@@ -131,8 +136,6 @@ class Vehicle(models.Model):
     )
     color = models.CharField(max_length=30)
     license_plate = models.CharField(max_length=15)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         ordering = ['-created_at']
@@ -140,7 +143,7 @@ class Vehicle(models.Model):
     def __str__(self):
         return f"{self.year} {self.make} {self.model} ({self.license_plate})"
 
-class Facility(models.Model):
+class Facility(BaseModel):
     FACILITY_TYPES = [
         ('OFFICE', 'Office'),
         ('TUNING', 'Tuning Facility'),
@@ -157,8 +160,6 @@ class Facility(models.Model):
     description = models.TextField()
     is_active = models.BooleanField(default=True)
     repair_shop = models.ForeignKey('RepairShop', on_delete=models.CASCADE, related_name='facilities')
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
 
     def save(self, *args, **kwargs):
         if not self.repair_shop_id:
@@ -171,16 +172,13 @@ class Facility(models.Model):
     def __str__(self):
         return f"{self.name} ({self.get_facility_type_display()})"
 
-class RepairShop(models.Model):
+class RepairShop(BaseModel):
     name = models.CharField(max_length=200)
     address = models.TextField()
     phone_number = models.CharField(max_length=15)
     email = models.EmailField()
-    tax_id = models.CharField(max_length=50)
     owner = models.ForeignKey(BaseUser, on_delete=models.PROTECT, 
                             limit_choices_to={'user_type': 'OWNER'})
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
 
     def save(self, *args, **kwargs):
         if not self.pk and RepairShop.objects.exists():
@@ -190,11 +188,11 @@ class RepairShop(models.Model):
     @classmethod
     def get_instance(cls):
         """
-        Get the single repair shop instance or create it if it doesn't exist.
+        Get the single repair shop instance or create it if it does not exist.
         """
         instance = cls.objects.first()
         if instance is None:
-            raise ValidationError('No repair shop instance exists. Please create one through the admin interface.')
+            raise ValidationError('No repair shop instance exists. Create one through the admin interface.')
         return instance
 
     def delete(self, *args, **kwargs):
@@ -204,13 +202,12 @@ class RepairShop(models.Model):
 
     class Meta:
         verbose_name = 'Repair Shop'
-        # Singular since there should be only one
-        verbose_name_plural = 'Repair Shop'
+        verbose_name_plural = 'Repair Shop'  # Singular since there should be only one
 
     def __str__(self):
         return self.name
 
-class Analytics(models.Model):
+class Analytics(BaseModel):
     repair_shop = models.OneToOneField(RepairShop, on_delete=models.CASCADE, related_name='analytics')
     total_revenue = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     total_appointments = models.PositiveIntegerField(default=0)
@@ -236,20 +233,18 @@ def create_repair_shop_analytics(sender, instance, created, **kwargs):
     if created:
         Analytics.objects.create(repair_shop=instance)
 
-class ServiceType(models.Model):
+class ServiceType(BaseModel):
     name = models.CharField(max_length=100)
     description = models.TextField()
     duration_minutes = models.PositiveIntegerField()
     price = models.DecimalField(max_digits=10, decimal_places=2)
     facility = models.ForeignKey(Facility, on_delete=models.CASCADE, related_name='service_types')
     maintenance_interval_months = models.PositiveIntegerField(null=True, blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return f"{self.name} at {self.facility.name}"
 
-class Appointment(models.Model):
+class Appointment(BaseModel):
     STATUS_CHOICES = [
         ('SCHEDULED', 'Scheduled'),
         ('IN_PROGRESS', 'In Progress'),
@@ -264,8 +259,6 @@ class Appointment(models.Model):
     scheduled_time = models.TimeField()
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='SCHEDULED')
     notes = models.TextField(blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         ordering = ['-scheduled_date', '-scheduled_time']
@@ -273,19 +266,17 @@ class Appointment(models.Model):
     def __str__(self):
         return f"{self.service_type} for {self.vehicle} on {self.scheduled_date}"
 
-class Review(models.Model):
+class Review(BaseModel):
     appointment = models.OneToOneField(Appointment, on_delete=models.CASCADE, related_name='review')
     rating = models.PositiveIntegerField(
         validators=[MinValueValidator(1), MaxValueValidator(5)]
     )
     comment = models.TextField()
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return f"Review for {self.appointment}"
 
-class EventLog(models.Model):
+class EventLog(BaseModel):
     EVENT_TYPES = [
         ('APPOINTMENT_CREATED', 'Appointment Created'),
         ('APPOINTMENT_UPDATED', 'Appointment Updated'),
@@ -299,7 +290,6 @@ class EventLog(models.Model):
     vehicle = models.ForeignKey(Vehicle, on_delete=models.CASCADE, related_name='events', null=True)
     appointment = models.ForeignKey(Appointment, on_delete=models.CASCADE, related_name='events', null=True)
     description = models.TextField()
-    created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         ordering = ['-created_at']
