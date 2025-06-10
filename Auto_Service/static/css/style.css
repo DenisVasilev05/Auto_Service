@@ -1,0 +1,292 @@
+/* Global Styles */
+:root {
+    --primary-color: #0d6efd;
+    --secondary-color: #6c757d;
+    --success-color: #198754;
+    --info-color: #0dcaf0;
+    --warning-color: #ffc107;
+    --danger-color: #dc3545;
+    --light-color: #f8f9fa;
+    --dark-color: #212529;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    line-height: 1.6;
+    color: var(--dark-color);
+}
+
+/* Navigation */
+.navbar {
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.navbar-brand i {
+    margin-right: 0.5rem;
+}
+
+.notification-badge {
+    position: absolute;
+    top: 0;
+    right: 0;
+    transform: translate(50%, -50%);
+    font-size: 0.75rem;
+}
+
+/* Cards */
+.card {
+    border: none;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    transition: transform 0.2s ease-in-out;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+}
+
+.card-header {
+    background-color: var(--light-color);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+/* Facility Cards */
+.facility-card {
+    height: 100%;
+}
+
+.facility-card .card-img-top {
+    height: 200px;
+    object-fit: cover;
+}
+
+.facility-card .badge {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+}
+
+/* Service Cards */
+.service-card {
+    height: 100%;
+}
+
+.service-card .price {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: var(--primary-color);
+}
+
+.service-card .duration {
+    color: var(--secondary-color);
+}
+
+/* Dashboard */
+.dashboard-stats {
+    background: linear-gradient(135deg, var(--primary-color), #0056b3);
+    color: white;
+    padding: 1.5rem;
+    border-radius: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.dashboard-stats h3 {
+    margin: 0;
+    font-size: 2rem;
+}
+
+.dashboard-stats p {
+    margin: 0;
+    opacity: 0.8;
+}
+
+/* Forms */
+.form-control:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+}
+
+.btn-primary {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+.btn-primary:hover {
+    background-color: #0056b3;
+    border-color: #0056b3;
+}
+
+/* Calendar */
+.calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.calendar-day {
+    padding: 1rem;
+    text-align: center;
+    border: 1px solid #dee2e6;
+    border-radius: 0.25rem;
+}
+
+.calendar-day.available {
+    background-color: var(--light-color);
+    cursor: pointer;
+}
+
+.calendar-day.available:hover {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+.calendar-day.unavailable {
+    background-color: #f8d7da;
+    color: #721c24;
+    cursor: not-allowed;
+}
+
+.calendar-day.selected {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+/* Reviews */
+.review-card {
+    border-left: 4px solid var(--primary-color);
+    margin-bottom: 1rem;
+}
+
+.star-rating {
+    color: var(--warning-color);
+}
+
+.review-date {
+    color: var(--secondary-color);
+    font-size: 0.875rem;
+}
+
+/* Notifications */
+.notification-item {
+    padding: 1rem;
+    border-bottom: 1px solid #dee2e6;
+    transition: background-color 0.2s ease-in-out;
+}
+
+.notification-item:hover {
+    background-color: var(--light-color);
+}
+
+.notification-item.unread {
+    background-color: #e7f5ff;
+}
+
+.notification-item .notification-time {
+    color: var(--secondary-color);
+    font-size: 0.875rem;
+}
+
+/* Analytics */
+.analytics-chart {
+    height: 300px;
+    margin-bottom: 2rem;
+}
+
+.analytics-card {
+    background: white;
+    border-radius: 0.5rem;
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Vehicle Management */
+.vehicle-card {
+    position: relative;
+    overflow: hidden;
+}
+
+.vehicle-card .vehicle-status {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    z-index: 1;
+}
+
+.vehicle-details {
+    padding: 1rem;
+    background-color: var(--light-color);
+    border-radius: 0.5rem;
+}
+
+/* Messages */
+.message-list {
+    max-height: 500px;
+    overflow-y: auto;
+}
+
+.message-item {
+    padding: 1rem;
+    border-bottom: 1px solid #dee2e6;
+    cursor: pointer;
+}
+
+.message-item:hover {
+    background-color: var(--light-color);
+}
+
+.message-item.unread {
+    background-color: #e7f5ff;
+}
+
+.message-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.message-sender {
+    font-weight: bold;
+}
+
+.message-time {
+    color: var(--secondary-color);
+    font-size: 0.875rem;
+}
+
+/* Footer */
+footer {
+    margin-top: auto;
+}
+
+.social-links a {
+    color: var(--dark-color);
+    font-size: 1.5rem;
+    text-decoration: none;
+}
+
+.social-links a:hover {
+    color: var(--primary-color);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .dashboard-stats {
+        margin-bottom: 1rem;
+    }
+
+    .calendar-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+
+    .analytics-chart {
+        height: 200px;
+    }
+}
+
+@media (max-width: 576px) {
+    .calendar-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+} 

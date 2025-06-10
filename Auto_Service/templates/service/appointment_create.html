@@ -1,0 +1,521 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Schedule Appointment - {{ repair_shop.name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .step-indicator {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 2rem;
+    }
+
+    .step {
+        flex: 1;
+        text-align: center;
+        padding: 1rem;
+        position: relative;
+    }
+
+    .step:not(:last-child)::after {
+        content: '';
+        position: absolute;
+        top: 50%;
+        right: -50%;
+        width: 100%;
+        height: 2px;
+        background-color: #dee2e6;
+        z-index: 1;
+    }
+
+    .step-number {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background-color: #dee2e6;
+        color: #6c757d;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 0.5rem;
+        position: relative;
+        z-index: 2;
+    }
+
+    .step.active .step-number {
+        background-color: var(--primary-color);
+        color: white;
+    }
+
+    .step.completed .step-number {
+        background-color: var(--success-color);
+        color: white;
+    }
+
+    .step-title {
+        color: #6c757d;
+        font-size: 0.875rem;
+    }
+
+    .step.active .step-title {
+        color: var(--primary-color);
+        font-weight: bold;
+    }
+
+    .step.completed .step-title {
+        color: var(--success-color);
+    }
+
+    .form-step {
+        display: none;
+    }
+
+    .form-step.active {
+        display: block;
+    }
+
+    .service-card {
+        cursor: pointer;
+        transition: transform 0.2s;
+    }
+
+    .service-card:hover {
+        transform: translateY(-5px);
+    }
+
+    .service-card.selected {
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+    }
+
+    .vehicle-card {
+        cursor: pointer;
+        transition: transform 0.2s;
+    }
+
+    .vehicle-card:hover {
+        transform: translateY(-5px);
+    }
+
+    .vehicle-card.selected {
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+    }
+
+    .calendar-grid {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+    }
+
+    .calendar-day {
+        padding: 1rem;
+        text-align: center;
+        border: 1px solid #dee2e6;
+        border-radius: 0.25rem;
+    }
+
+    .calendar-day.available {
+        background-color: var(--light-color);
+        cursor: pointer;
+    }
+
+    .calendar-day.available:hover {
+        background-color: var(--primary-color);
+        color: white;
+    }
+
+    .calendar-day.unavailable {
+        background-color: #f8d7da;
+        color: #721c24;
+        cursor: not-allowed;
+    }
+
+    .calendar-day.selected {
+        background-color: var(--primary-color);
+        color: white;
+    }
+
+    .time-slot {
+        padding: 0.5rem;
+        margin: 0.25rem;
+        border: 1px solid #dee2e6;
+        border-radius: 0.25rem;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .time-slot:hover {
+        background-color: var(--primary-color);
+        color: white;
+    }
+
+    .time-slot.selected {
+        background-color: var(--primary-color);
+        color: white;
+    }
+
+    .time-slot.unavailable {
+        background-color: #f8d7da;
+        color: #721c24;
+        cursor: not-allowed;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1 class="mb-4">Schedule an Appointment</h1>
+
+    <!-- Step Indicator -->
+    <div class="step-indicator">
+        <div class="step active" data-step="1">
+            <div class="step-number">1</div>
+            <div class="step-title">Select Service</div>
+        </div>
+        <div class="step" data-step="2">
+            <div class="step-number">2</div>
+            <div class="step-title">Choose Vehicle</div>
+        </div>
+        <div class="step" data-step="3">
+            <div class="step-number">3</div>
+            <div class="step-title">Pick Date & Time</div>
+        </div>
+        <div class="step" data-step="4">
+            <div class="step-number">4</div>
+            <div class="step-title">Confirm</div>
+        </div>
+    </div>
+
+    <form id="appointmentForm" method="post">
+        {% csrf_token %}
+        <input type="hidden" name="service_type" id="selected_service">
+        <input type="hidden" name="vehicle" id="selected_vehicle">
+        <input type="hidden" name="scheduled_date" id="selected_date">
+        <input type="hidden" name="scheduled_time" id="selected_time">
+
+        <!-- Step 1: Select Service -->
+        <div class="form-step active" data-step="1">
+            <h3 class="mb-4">Select a Service</h3>
+            <div class="row g-4">
+                {% for service in services %}
+                    <div class="col-md-4">
+                        <div class="card service-card h-100" data-service-id="{{ service.id }}">
+                            <div class="card-body">
+                                <h5 class="card-title">{{ service.name }}</h5>
+                                <p class="card-text">{{ service.description }}</p>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span class="price">${{ service.price }}</span>
+                                    <span class="duration">{{ service.duration_minutes }} mins</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+            <div class="mt-4">
+                <button type="button" class="btn btn-primary next-step" disabled>Next</button>
+            </div>
+        </div>
+
+        <!-- Step 2: Choose Vehicle -->
+        <div class="form-step" data-step="2">
+            <h3 class="mb-4">Choose Your Vehicle</h3>
+            <div class="row g-4">
+                {% for vehicle in vehicles %}
+                    <div class="col-md-4">
+                        <div class="card vehicle-card h-100" data-vehicle-id="{{ vehicle.id }}">
+                            <div class="card-body">
+                                <h5 class="card-title">{{ vehicle.year }} {{ vehicle.make }} {{ vehicle.model }}</h5>
+                                <p class="card-text">
+                                    License Plate: {{ vehicle.license_plate }}<br>
+                                    VIN: {{ vehicle.vin }}
+                                </p>
+                                {% if vehicle.last_service_date %}
+                                    <small class="text-muted">
+                                        Last service: {{ vehicle.last_service_date|date:"F j, Y" }}
+                                    </small>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                {% empty %}
+                    <div class="col-12">
+                        <div class="alert alert-info">
+                            You haven't registered any vehicles yet. 
+                            <a href="{% url 'service:vehicle_register' %}" class="alert-link">Register a vehicle</a> first.
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+            <div class="mt-4">
+                <button type="button" class="btn btn-secondary prev-step">Previous</button>
+                <button type="button" class="btn btn-primary next-step" disabled>Next</button>
+            </div>
+        </div>
+
+        <!-- Step 3: Pick Date & Time -->
+        <div class="form-step" data-step="3">
+            <h3 class="mb-4">Select Date & Time</h3>
+            <div class="row">
+                <div class="col-md-8">
+                    <div id="appointment-calendar" class="calendar-grid mb-4">
+                        <!-- Calendar will be populated by JavaScript -->
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div id="time-slots" class="d-flex flex-wrap">
+                        <!-- Time slots will be populated by JavaScript -->
+                    </div>
+                </div>
+            </div>
+            <div class="mt-4">
+                <button type="button" class="btn btn-secondary prev-step">Previous</button>
+                <button type="button" class="btn btn-primary next-step" disabled>Next</button>
+            </div>
+        </div>
+
+        <!-- Step 4: Confirm -->
+        <div class="form-step" data-step="4">
+            <h3 class="mb-4">Confirm Your Appointment</h3>
+            <div class="card">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h5>Service Details</h5>
+                            <p id="confirm-service"></p>
+                            <h5>Vehicle</h5>
+                            <p id="confirm-vehicle"></p>
+                        </div>
+                        <div class="col-md-6">
+                            <h5>Date & Time</h5>
+                            <p id="confirm-datetime"></p>
+                            <h5>Total Price</h5>
+                            <p id="confirm-price"></p>
+                        </div>
+                    </div>
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="terms-checkbox" required>
+                        <label class="form-check-label" for="terms-checkbox">
+                            I agree to the terms and conditions
+                        </label>
+                    </div>
+                </div>
+            </div>
+            <div class="mt-4">
+                <button type="button" class="btn btn-secondary prev-step">Previous</button>
+                <button type="submit" class="btn btn-success" disabled>Confirm Appointment</button>
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let currentStep = 1;
+    let selectedService = null;
+    let selectedVehicle = null;
+    let selectedDate = null;
+    let selectedTime = null;
+
+    // Initialize the form
+    document.addEventListener('DOMContentLoaded', function() {
+        // Service selection
+        document.querySelectorAll('.service-card').forEach(card => {
+            card.addEventListener('click', function() {
+                document.querySelectorAll('.service-card').forEach(c => c.classList.remove('selected'));
+                this.classList.add('selected');
+                selectedService = this.dataset.serviceId;
+                document.getElementById('selected_service').value = selectedService;
+                enableNextButton(1);
+            });
+        });
+
+        // Vehicle selection
+        document.querySelectorAll('.vehicle-card').forEach(card => {
+            card.addEventListener('click', function() {
+                document.querySelectorAll('.vehicle-card').forEach(c => c.classList.remove('selected'));
+                this.classList.add('selected');
+                selectedVehicle = this.dataset.vehicleId;
+                document.getElementById('selected_vehicle').value = selectedVehicle;
+                enableNextButton(2);
+            });
+        });
+
+        // Navigation buttons
+        document.querySelectorAll('.next-step').forEach(button => {
+            button.addEventListener('click', () => nextStep());
+        });
+
+        document.querySelectorAll('.prev-step').forEach(button => {
+            button.addEventListener('click', () => prevStep());
+        });
+
+        // Terms checkbox
+        document.getElementById('terms-checkbox').addEventListener('change', function() {
+            document.querySelector('button[type="submit"]').disabled = !this.checked;
+        });
+
+        // Load initial calendar
+        if (selectedService) {
+            loadFacilitySchedule(selectedService);
+        }
+    });
+
+    function nextStep() {
+        document.querySelector(`.step[data-step="${currentStep}"]`).classList.add('completed');
+        document.querySelector(`.form-step[data-step="${currentStep}"]`).classList.remove('active');
+        currentStep++;
+        document.querySelector(`.step[data-step="${currentStep}"]`).classList.add('active');
+        document.querySelector(`.form-step[data-step="${currentStep}"]`).classList.add('active');
+
+        if (currentStep === 3 && selectedService) {
+            loadFacilitySchedule(selectedService);
+        } else if (currentStep === 4) {
+            updateConfirmation();
+        }
+    }
+
+    function prevStep() {
+        document.querySelector(`.step[data-step="${currentStep}"]`).classList.remove('active');
+        document.querySelector(`.form-step[data-step="${currentStep}"]`).classList.remove('active');
+        currentStep--;
+        document.querySelector(`.step[data-step="${currentStep}"]`).classList.remove('completed');
+        document.querySelector(`.form-step[data-step="${currentStep}"]`).classList.add('active');
+    }
+
+    function enableNextButton(step) {
+        const button = document.querySelector(`.form-step[data-step="${step}"] .next-step`);
+        if (button) {
+            button.disabled = false;
+        }
+    }
+
+    function loadFacilitySchedule(serviceId) {
+        fetch(`/service/api/facility-schedule/${serviceId}/`)
+            .then(response => response.json())
+            .then(data => {
+                updateCalendar(data.schedule);
+            })
+            .catch(error => console.error('Error:', error));
+    }
+
+    function updateCalendar(schedule) {
+        const calendar = document.getElementById('appointment-calendar');
+        calendar.innerHTML = '';
+
+        schedule.forEach(day => {
+            const dayElement = document.createElement('div');
+            dayElement.className = `calendar-day ${day.available ? 'available' : 'unavailable'}`;
+            dayElement.dataset.date = day.date;
+            dayElement.innerHTML = `
+                <div class="date">${day.dayOfMonth}</div>
+                <div class="slots">${day.availableSlots} slots</div>
+            `;
+
+            if (day.available) {
+                dayElement.addEventListener('click', () => selectDate(day.date));
+            }
+
+            calendar.appendChild(dayElement);
+        });
+    }
+
+    function selectDate(date) {
+        selectedDate = date;
+        document.getElementById('selected_date').value = date;
+        document.querySelectorAll('.calendar-day').forEach(day => {
+            day.classList.remove('selected');
+            if (day.dataset.date === date) {
+                day.classList.add('selected');
+            }
+        });
+
+        loadTimeSlots(date);
+    }
+
+    function loadTimeSlots(date) {
+        fetch(`/service/api/time-slots/${selectedService}/${date}/`)
+            .then(response => response.json())
+            .then(data => {
+                updateTimeSlots(data.time_slots);
+            })
+            .catch(error => console.error('Error:', error));
+    }
+
+    function updateTimeSlots(slots) {
+        const timeSlots = document.getElementById('time-slots');
+        timeSlots.innerHTML = '';
+
+        slots.forEach(slot => {
+            const slotElement = document.createElement('div');
+            slotElement.className = `time-slot ${slot.available ? 'available' : 'unavailable'}`;
+            slotElement.textContent = slot.time;
+
+            if (slot.available) {
+                slotElement.addEventListener('click', () => selectTime(slot.time));
+            }
+
+            timeSlots.appendChild(slotElement);
+        });
+    }
+
+    function selectTime(time) {
+        selectedTime = time;
+        document.getElementById('selected_time').value = time;
+        document.querySelectorAll('.time-slot').forEach(slot => {
+            slot.classList.remove('selected');
+            if (slot.textContent === time) {
+                slot.classList.add('selected');
+            }
+        });
+        enableNextButton(3);
+    }
+
+    function updateConfirmation() {
+        const service = document.querySelector('.service-card.selected');
+        const vehicle = document.querySelector('.vehicle-card.selected');
+        
+        document.getElementById('confirm-service').textContent = service.querySelector('.card-title').textContent;
+        document.getElementById('confirm-vehicle').textContent = vehicle.querySelector('.card-title').textContent;
+        document.getElementById('confirm-datetime').textContent = `${selectedDate} at ${selectedTime}`;
+        document.getElementById('confirm-price').textContent = service.querySelector('.price').textContent;
+    }
+
+    // Form submission
+    document.getElementById('appointmentForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        if (!selectedService || !selectedVehicle || !selectedDate || !selectedTime) {
+            showAlert('Please complete all steps before confirming.', 'danger');
+            return;
+        }
+
+        const formData = new FormData(this);
+        
+        fetch(this.action, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken'),
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(Object.fromEntries(formData))
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                window.location.href = data.redirect_url;
+            } else {
+                showAlert(data.error || 'An error occurred while scheduling the appointment.', 'danger');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showAlert('An error occurred while scheduling the appointment.', 'danger');
+        });
+    });
+</script>
+{% endblock %} 

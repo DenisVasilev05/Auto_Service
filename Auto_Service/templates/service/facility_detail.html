@@ -1,0 +1,337 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load service_extras %}
+
+{% block title %}{{ facility.name }} - {{ repair_shop.name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .facility-header {
+        background: linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), 
+                    url('{% if facility.image %}{{ facility.image.url }}{% else %}{% static "images/facility-placeholder.jpg" %}{% endif %}');
+        background-size: cover;
+        background-position: center;
+        color: white;
+        padding: 60px 0;
+        margin-bottom: 2rem;
+    }
+
+    .service-price {
+        font-size: 1.5rem;
+        font-weight: bold;
+        color: var(--primary-color);
+    }
+
+    .technician-card {
+        transition: transform 0.2s;
+    }
+
+    .technician-card:hover {
+        transform: translateY(-5px);
+    }
+
+    .technician-avatar {
+        width: 120px;
+        height: 120px;
+        border-radius: 50%;
+        object-fit: cover;
+        margin-bottom: 1rem;
+    }
+
+    .equipment-list {
+        list-style: none;
+        padding-left: 0;
+    }
+
+    .equipment-list li {
+        padding: 0.5rem 0;
+        border-bottom: 1px solid #dee2e6;
+    }
+
+    .equipment-list li:last-child {
+        border-bottom: none;
+    }
+
+    .status-badge {
+        position: absolute;
+        top: 1rem;
+        right: 1rem;
+    }
+
+    .review-carousel .carousel-item {
+        min-height: 200px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Facility Header -->
+<header class="facility-header text-center">
+    <div class="container">
+        <h1 class="display-4 mb-3">{{ facility.name }}</h1>
+        <p class="lead mb-4">{{ facility.description }}</p>
+        {% if facility.is_active %}
+            <span class="badge bg-success">Open for Service</span>
+        {% else %}
+            <span class="badge bg-danger">Temporarily Closed</span>
+        {% endif %}
+    </div>
+</header>
+
+<div class="container">
+    <div class="row">
+        <!-- Main Content -->
+        <div class="col-lg-8">
+            <!-- Services Section -->
+            <section class="mb-5">
+                <h2 class="mb-4">Our Services</h2>
+                <div class="row g-4">
+                    {% for service in facility.service_types.all %}
+                        <div class="col-md-6">
+                            <div class="card h-100">
+                                <div class="card-body">
+                                    <h5 class="card-title">{{ service.name }}</h5>
+                                    <p class="card-text">{{ service.description }}</p>
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <span class="service-price">${{ service.price }}</span>
+                                        <span class="text-muted">{{ service.duration_minutes }} mins</span>
+                                    </div>
+                                    {% if user.is_authenticated and user.baseuser.user_type == 'CUSTOMER' %}
+                                        <div class="mt-3">
+                                            <a href="{% url 'service:create_appointment' %}?service={{ service.id }}" 
+                                               class="btn btn-primary btn-sm">Book Now</a>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    {% empty %}
+                        <div class="col">
+                            <p class="text-muted">No services available at this time.</p>
+                        </div>
+                    {% endfor %}
+                </div>
+            </section>
+
+            <!-- Technicians Section -->
+            <section class="mb-5">
+                <h2 class="mb-4">Our Expert Technicians</h2>
+                <div class="row g-4">
+                    {% for technician in technicians %}
+                        <div class="col-md-6">
+                            <div class="card technician-card h-100">
+                                <div class="card-body text-center">
+                                    {% if technician.avatar %}
+                                        <img src="{{ technician.avatar.url }}" class="technician-avatar" alt="{{ technician.name }}">
+                                    {% else %}
+                                        <img src="{% static 'images/avatar-placeholder.jpg' %}" class="technician-avatar" alt="{{ technician.name }}">
+                                    {% endif %}
+                                    <h5 class="card-title">{{ technician.base_user.user.get_full_name }}</h5>
+                                    <div class="star-rating mb-2">
+                                        {% for i in technician.average_rating|get_range %}
+                                            <i class="fas fa-star"></i>
+                                        {% endfor %}
+                                        <span class="text-muted">({{ technician.review_count }} reviews)</span>
+                                    </div>
+                                    <p class="card-text">
+                                        <small class="text-muted">
+                                            {{ technician.completed_services }} services completed
+                                            <br>
+                                            {{ technician.completion_rate }}% completion rate
+                                        </small>
+                                    </p>
+                                    <div class="mt-2">
+                                        {% for cert in technician.specializations.all %}
+                                            <span class="badge bg-secondary me-1">{{ cert.name }}</span>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    {% empty %}
+                        <div class="col">
+                            <p class="text-muted">No technicians assigned to this facility at this time.</p>
+                        </div>
+                    {% endfor %}
+                </div>
+            </section>
+
+            <!-- Customer Reviews -->
+            <section class="mb-5">
+                <h2 class="mb-4">Customer Reviews</h2>
+                {% if reviews %}
+                    <div id="reviewCarousel" class="carousel slide review-carousel" data-bs-ride="carousel">
+                        <div class="carousel-inner">
+                            {% for review in reviews %}
+                                <div class="carousel-item {% if forloop.first %}active{% endif %}">
+                                    <div class="card">
+                                        <div class="card-body">
+                                            <div class="star-rating mb-2">
+                                                {% for i in review.rating|get_range %}
+                                                    <i class="fas fa-star"></i>
+                                                {% endfor %}
+                                            </div>
+                                            <p class="card-text">{{ review.comment }}</p>
+                                            <footer class="blockquote-footer">
+                                                {{ review.appointment.customer.base_user.user.get_full_name }}
+                                                <cite title="Service Date">
+                                                    {{ review.created_at|date:"F j, Y" }}
+                                                </cite>
+                                            </footer>
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                        <button class="carousel-control-prev" type="button" data-bs-target="#reviewCarousel" data-bs-slide="prev">
+                            <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                            <span class="visually-hidden">Previous</span>
+                        </button>
+                        <button class="carousel-control-next" type="button" data-bs-target="#reviewCarousel" data-bs-slide="next">
+                            <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                            <span class="visually-hidden">Next</span>
+                        </button>
+                    </div>
+                {% else %}
+                    <p class="text-muted">No reviews available for this facility yet.</p>
+                {% endif %}
+            </section>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="col-lg-4">
+            <!-- Facility Information -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">Facility Information</h5>
+                    <ul class="list-unstyled">
+                        <li class="mb-2">
+                            <i class="fas fa-clock me-2"></i>
+                            <strong>Working Hours:</strong><br>
+                            Monday - Friday: {{ facility.schedule.opening_time }} - {{ facility.schedule.closing_time }}<br>
+                            {% if facility.schedule.is_open_weekends %}
+                                Weekends: {{ facility.schedule.opening_time }} - {{ facility.schedule.closing_time }}
+                            {% else %}
+                                Weekends: Closed
+                            {% endif %}
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-users me-2"></i>
+                            <strong>Capacity:</strong> {{ facility.capacity }} vehicles
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-calendar-check me-2"></i>
+                            <strong>Appointments Today:</strong> {{ today_appointments_count }}
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Equipment -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">Equipment & Tools</h5>
+                    <ul class="equipment-list">
+                        {% for equipment in facility.equipment.all %}
+                            <li>
+                                <i class="fas fa-tools me-2"></i>
+                                {{ equipment.name }}
+                                {% if equipment.status == 'OPERATIONAL' %}
+                                    <span class="badge bg-success float-end">Operational</span>
+                                {% else %}
+                                    <span class="badge bg-warning float-end">{{ equipment.get_status_display }}</span>
+                                {% endif %}
+                            </li>
+                        {% empty %}
+                            <li class="text-muted">No equipment listed</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            {% if user.is_authenticated %}
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Quick Actions</h5>
+                        {% if user.baseuser.user_type == 'CUSTOMER' %}
+                            <a href="{% url 'service:create_appointment' %}?facility={{ facility.id }}" 
+                               class="btn btn-primary btn-lg">Book Appointment</a>
+                        {% endif %}
+                        {% if user.baseuser.user_type in 'ADMIN,MANAGER' %}
+                            <a href="{% url 'admin:service_facility_change' facility.id %}" 
+                               class="btn btn-outline-primary w-100 mb-2">Manage Facility</a>
+                            <button type="button" class="btn btn-outline-danger w-100" 
+                                    data-bs-toggle="modal" data-bs-target="#closeFacilityModal">
+                                Temporary Close
+                            </button>
+                        {% endif %}
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Facility Closure Modal -->
+{% if user.is_authenticated and user.baseuser.user_type in 'ADMIN,MANAGER' %}
+    <div class="modal fade" id="closeFacilityModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Temporarily Close Facility</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form method="post" action="{% url 'service:admin_facilities' %}">
+                    {% csrf_token %}
+                    <div class="modal-body">
+                        <input type="hidden" name="facility_id" value="{{ facility.id }}">
+                        <div class="mb-3">
+                            <label for="start_date" class="form-label">Start Date</label>
+                            <input type="date" class="form-control" id="start_date" name="start_date" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="end_date" class="form-label">End Date</label>
+                            <input type="date" class="form-control" id="end_date" name="end_date" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="reason" class="form-label">Reason</label>
+                            <textarea class="form-control" id="reason" name="reason" rows="3" required></textarea>
+                        </div>
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" id="is_emergency" name="is_emergency">
+                            <label class="form-check-label" for="is_emergency">
+                                Emergency Closure
+                            </label>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-danger">Close Facility</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Initialize date inputs with today's date as minimum
+    document.addEventListener('DOMContentLoaded', function() {
+        const today = new Date().toISOString().split('T')[0];
+        const startDateInput = document.getElementById('start_date');
+        const endDateInput = document.getElementById('end_date');
+        
+        if (startDateInput && endDateInput) {
+            startDateInput.min = today;
+            endDateInput.min = today;
+            
+            startDateInput.addEventListener('change', function() {
+                endDateInput.min = this.value;
+            });
+        }
+    });
+</script>
+{% endblock %} 

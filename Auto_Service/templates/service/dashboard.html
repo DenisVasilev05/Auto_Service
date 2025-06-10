@@ -1,0 +1,658 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load service_extras %}
+
+{% block title %}Dashboard - {{ repair_shop.name }}{% endblock %}
+
+{% block extra_css %}
+<link href="https://cdn.jsdelivr.net/npm/chart.js@3.7.0/dist/chart.min.css" rel="stylesheet">
+<style>
+    .dashboard-card {
+        height: 100%;
+        transition: transform 0.2s;
+    }
+
+    .dashboard-card:hover {
+        transform: translateY(-5px);
+    }
+
+    .stats-card {
+        background: linear-gradient(135deg, var(--primary-color), #0056b3);
+        color: white;
+    }
+
+    .stats-card .card-title {
+        font-size: 1.1rem;
+        opacity: 0.9;
+    }
+
+    .stats-card .stats-value {
+        font-size: 2rem;
+        font-weight: bold;
+    }
+
+    .notification-list {
+        max-height: 400px;
+        overflow-y: auto;
+    }
+
+    .chart-container {
+        position: relative;
+        height: 300px;
+        width: 100%;
+    }
+
+    .appointment-list {
+        max-height: 500px;
+        overflow-y: auto;
+    }
+
+    .message-list {
+        max-height: 400px;
+        overflow-y: auto;
+    }
+
+    .technician-schedule {
+        max-height: 500px;
+        overflow-y: auto;
+    }
+
+    .vehicle-list {
+        max-height: 400px;
+        overflow-y: auto;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Dashboard</h1>
+        <div>
+            {% if user.baseuser.user_type == 'CUSTOMER' %}
+                <a href="{% url 'service:create_appointment' %}" class="btn btn-primary">Book Appointment</a>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if user.baseuser.user_type == 'CUSTOMER' %}
+        <!-- Customer Dashboard -->
+        <div class="row g-4">
+            <!-- Stats Cards -->
+            <div class="col-md-4">
+                <div class="card stats-card dashboard-card">
+                    <div class="card-body">
+                        <h6 class="card-title">Active Appointments</h6>
+                        <div class="stats-value">{{ active_appointments_count }}</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card stats-card dashboard-card">
+                    <div class="card-body">
+                        <h6 class="card-title">Registered Vehicles</h6>
+                        <div class="stats-value">{{ vehicles_count }}</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card stats-card dashboard-card">
+                    <div class="card-body">
+                        <h6 class="card-title">Total Services</h6>
+                        <div class="stats-value">{{ total_services_count }}</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Vehicles -->
+            <div class="col-md-6">
+                <div class="card dashboard-card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">My Vehicles</h5>
+                        <a href="{% url 'service:vehicle_register' %}" class="btn btn-sm btn-primary">
+                            <i class="fas fa-plus"></i> Add Vehicle
+                        </a>
+                    </div>
+                    <div class="card-body vehicle-list">
+                        {% for vehicle in vehicles %}
+                            <div class="d-flex align-items-center mb-3">
+                                <div class="flex-grow-1">
+                                    <h6 class="mb-0">{{ vehicle.year }} {{ vehicle.make }} {{ vehicle.model }}</h6>
+                                    <small class="text-muted">
+                                        {{ vehicle.license_plate }} | Last service: 
+                                        {% if vehicle.last_service_date %}
+                                            {{ vehicle.last_service_date|date:"F j, Y" }}
+                                        {% else %}
+                                            Never
+                                        {% endif %}
+                                    </small>
+                                </div>
+                                <a href="{% url 'service:vehicle_detail' vehicle.id %}" class="btn btn-sm btn-outline-primary">
+                                    Details
+                                </a>
+                            </div>
+                        {% empty %}
+                            <p class="text-muted">No vehicles registered yet.</p>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Upcoming Appointments -->
+            <div class="col-md-6">
+                <div class="card dashboard-card">
+                    <div class="card-header">
+                        <h5 class="mb-0">Upcoming Appointments</h5>
+                    </div>
+                    <div class="card-body appointment-list">
+                        {% for appointment in upcoming_appointments %}
+                            <div class="d-flex align-items-center mb-3">
+                                <div class="flex-grow-1">
+                                    <h6 class="mb-0">{{ appointment.service_type.name }}</h6>
+                                    <small class="text-muted">
+                                        {{ appointment.scheduled_date|date:"F j, Y" }} at {{ appointment.scheduled_time }}
+                                        <br>
+                                        {{ appointment.vehicle.year }} {{ appointment.vehicle.make }} {{ appointment.vehicle.model }}
+                                    </small>
+                                </div>
+                                <div class="btn-group">
+                                    <a href="{% url 'service:appointment_detail' appointment.id %}" 
+                                       class="btn btn-sm btn-outline-primary">Details</a>
+                                    <a href="{% url 'service:appointment_cancel' appointment.id %}" 
+                                       class="btn btn-sm btn-outline-danger">Cancel</a>
+                                </div>
+                            </div>
+                        {% empty %}
+                            <p class="text-muted">No upcoming appointments.</p>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Reviews -->
+            <div class="col-md-6">
+                <div class="card dashboard-card">
+                    <div class="card-header">
+                        <h5 class="mb-0">Recent Reviews</h5>
+                    </div>
+                    <div class="card-body">
+                        {% for review in recent_reviews %}
+                            <div class="mb-3">
+                                <div class="star-rating">
+                                    {% for i in review.rating|get_range %}
+                                        <i class="fas fa-star"></i>
+                                    {% endfor %}
+                                </div>
+                                <p class="mb-1">{{ review.comment }}</p>
+                                <small class="text-muted">
+                                    {{ review.created_at|date:"F j, Y" }} - {{ review.appointment.service_type.name }}
+                                </small>
+                            </div>
+                        {% empty %}
+                            <p class="text-muted">No reviews yet.</p>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Notifications -->
+            <div class="col-md-6">
+                <div class="card dashboard-card">
+                    <div class="card-header">
+                        <h5 class="mb-0">Notifications</h5>
+                    </div>
+                    <div class="card-body notification-list">
+                        {% for notification in notifications %}
+                            <div class="notification-item {% if not notification.is_read %}unread{% endif %}" 
+                                 data-notification-id="{{ notification.id }}">
+                                <h6 class="mb-1">{{ notification.title }}</h6>
+                                <p class="mb-1">{{ notification.message }}</p>
+                                <small class="text-muted">{{ notification.created_at|timesince }} ago</small>
+                            </div>
+                        {% empty %}
+                            <p class="text-muted">No notifications.</p>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    {% elif user.baseuser.user_type == 'TECHNICIAN' %}
+        <!-- Technician Dashboard -->
+        <div class="row g-4">
+            <!-- Stats Cards -->
+            <div class="col-md-4">
+                <div class="card stats-card dashboard-card">
+                    <div class="card-body">
+                        <h6 class="card-title">Today's Appointments</h6>
+                        <div class="stats-value">{{ today_appointments_count }}</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card stats-card dashboard-card">
+                    <div class="card-body">
+                        <h6 class="card-title">Completion Rate</h6>
+                        <div class="stats-value">{{ completion_rate }}%</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card stats-card dashboard-card">
+                    <div class="card-body">
+                        <h6 class="card-title">Average Rating</h6>
+                        <div class="stats-value">{{ average_rating }}/5</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Today's Schedule -->
+            <div class="col-md-8">
+                <div class="card dashboard-card">
+                    <div class="card-header">
+                        <h5 class="mb-0">Today's Schedule</h5>
+                    </div>
+                    <div class="card-body technician-schedule">
+                        {% for appointment in today_appointments %}
+                            <div class="d-flex align-items-center mb-3">
+                                <div class="flex-grow-1">
+                                    <h6 class="mb-0">{{ appointment.service_type.name }}</h6>
+                                    <small class="text-muted">
+                                        {{ appointment.scheduled_time }} - 
+                                        {{ appointment.vehicle.year }} {{ appointment.vehicle.make }} {{ appointment.vehicle.model }}
+                                    </small>
+                                </div>
+                                <div class="btn-group">
+                                    <button class="btn btn-sm btn-success" onclick="startService('{{ appointment.id }}')">
+                                        Start
+                                    </button>
+                                    <button class="btn btn-sm btn-primary" onclick="completeService('{{ appointment.id }}')">
+                                        Complete
+                                    </button>
+                                </div>
+                            </div>
+                        {% empty %}
+                            <p class="text-muted">No appointments scheduled for today.</p>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Notifications -->
+            <div class="col-md-4">
+                <div class="card dashboard-card">
+                    <div class="card-header">
+                        <h5 class="mb-0">Notifications</h5>
+                    </div>
+                    <div class="card-body notification-list">
+                        {% for notification in notifications %}
+                            <div class="notification-item {% if not notification.is_read %}unread{% endif %}"
+                                 data-notification-id="{{ notification.id }}">
+                                <h6 class="mb-1">{{ notification.title }}</h6>
+                                <p class="mb-1">{{ notification.message }}</p>
+                                <small class="text-muted">{{ notification.created_at|timesince }} ago</small>
+                            </div>
+                        {% empty %}
+                            <p class="text-muted">No notifications.</p>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Reviews -->
+            <div class="col-md-12">
+                <div class="card dashboard-card">
+                    <div class="card-header">
+                        <h5 class="mb-0">Recent Reviews</h5>
+                    </div>
+                    <div class="card-body">
+                        {% for review in recent_reviews %}
+                            <div class="mb-3">
+                                <div class="star-rating">
+                                    {% for i in review.rating|get_range %}
+                                        <i class="fas fa-star"></i>
+                                    {% endfor %}
+                                </div>
+                                <p class="mb-1">{{ review.comment }}</p>
+                                <small class="text-muted">
+                                    {{ review.created_at|date:"F j, Y" }} - {{ review.appointment.service_type.name }}
+                                </small>
+                            </div>
+                        {% empty %}
+                            <p class="text-muted">No reviews yet.</p>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    {% elif user.baseuser.user_type == 'ADMIN' or user.baseuser.user_type == 'MANAGER' %}
+        <!-- Admin/Manager Dashboard -->
+        <div class="row g-4">
+            <!-- Stats Cards -->
+            <div class="col-md-3">
+                <div class="card stats-card dashboard-card">
+                    <div class="card-body">
+                        <h6 class="card-title">Today's Revenue</h6>
+                        <div class="stats-value">${{ today_revenue }}</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card stats-card dashboard-card">
+                    <div class="card-body">
+                        <h6 class="card-title">Active Appointments</h6>
+                        <div class="stats-value">{{ active_appointments_count }}</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card stats-card dashboard-card">
+                    <div class="card-body">
+                        <h6 class="card-title">Total Customers</h6>
+                        <div class="stats-value">{{ total_customers }}</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card stats-card dashboard-card">
+                    <div class="card-body">
+                        <h6 class="card-title">Customer Satisfaction</h6>
+                        <div class="stats-value">{{ customer_satisfaction }}%</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Revenue Chart -->
+            <div class="col-md-8">
+                <div class="card dashboard-card">
+                    <div class="card-header">
+                        <h5 class="mb-0">Revenue Overview</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container">
+                            <canvas id="revenueChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Facility Status -->
+            <div class="col-md-4">
+                <div class="card dashboard-card">
+                    <div class="card-header">
+                        <h5 class="mb-0">Facility Status</h5>
+                    </div>
+                    <div class="card-body">
+                        {% for facility in facilities %}
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <div>
+                                    <h6 class="mb-0">{{ facility.name }}</h6>
+                                    <small class="text-muted">
+                                        {{ facility.appointments_today }} appointments today
+                                    </small>
+                                </div>
+                                {% if facility.is_active %}
+                                    <span class="badge bg-success">Active</span>
+                                {% else %}
+                                    <span class="badge bg-danger">Closed</span>
+                                {% endif %}
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Events -->
+            <div class="col-md-6">
+                <div class="card dashboard-card">
+                    <div class="card-header">
+                        <h5 class="mb-0">Recent Events</h5>
+                    </div>
+                    <div class="card-body">
+                        {% for event in recent_events %}
+                            <div class="mb-3">
+                                <h6 class="mb-1">{{ event.get_event_type_display }}</h6>
+                                <p class="mb-1">{{ event.description }}</p>
+                                <small class="text-muted">{{ event.created_at|timesince }} ago</small>
+                            </div>
+                        {% empty %}
+                            <p class="text-muted">No recent events.</p>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Technician Performance -->
+            <div class="col-md-6">
+                <div class="card dashboard-card">
+                    <div class="card-header">
+                        <h5 class="mb-0">Technician Performance</h5>
+                    </div>
+                    <div class="card-body">
+                        {% for tech in top_technicians %}
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <div>
+                                    <h6 class="mb-0">{{ tech.base_user.user.get_full_name }}</h6>
+                                    <small class="text-muted">
+                                        {{ tech.completed_services }} services completed
+                                    </small>
+                                </div>
+                                <div class="star-rating">
+                                    {% for i in tech.average_rating|get_range %}
+                                        <i class="fas fa-star"></i>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    {% elif user.baseuser.user_type == 'SECRETARY' %}
+        <!-- Secretary Dashboard -->
+        <div class="row g-4">
+            <!-- Stats Cards -->
+            <div class="col-md-4">
+                <div class="card stats-card dashboard-card">
+                    <div class="card-body">
+                        <h6 class="card-title">Unread Messages</h6>
+                        <div class="stats-value">{{ unread_messages_count }}</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card stats-card dashboard-card">
+                    <div class="card-body">
+                        <h6 class="card-title">Today's Appointments</h6>
+                        <div class="stats-value">{{ today_appointments_count }}</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card stats-card dashboard-card">
+                    <div class="card-body">
+                        <h6 class="card-title">Response Rate</h6>
+                        <div class="stats-value">{{ response_rate }}%</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Messages -->
+            <div class="col-md-8">
+                <div class="card dashboard-card">
+                    <div class="card-header">
+                        <h5 class="mb-0">Recent Messages</h5>
+                    </div>
+                    <div class="card-body message-list">
+                        {% for message in messages %}
+                            <div class="message-item {% if not message.is_read %}unread{% endif %}">
+                                <div class="message-header">
+                                    <span class="message-sender">{{ message.sender.user.get_full_name }}</span>
+                                    <span class="message-time">{{ message.created_at|timesince }} ago</span>
+                                </div>
+                                <h6 class="mb-1">{{ message.subject }}</h6>
+                                <p class="mb-1">{{ message.content|truncatewords:30 }}</p>
+                                {% if not message.reply %}
+                                    <button class="btn btn-sm btn-primary" 
+                                            onclick="showReplyForm('{{ message.id }}')">Reply</button>
+                                {% endif %}
+                            </div>
+                        {% empty %}
+                            <p class="text-muted">No messages.</p>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Today's Schedule -->
+            <div class="col-md-4">
+                <div class="card dashboard-card">
+                    <div class="card-header">
+                        <h5 class="mb-0">Today's Schedule</h5>
+                    </div>
+                    <div class="card-body">
+                        {% for appointment in today_appointments %}
+                            <div class="mb-3">
+                                <h6 class="mb-0">{{ appointment.service_type.name }}</h6>
+                                <small class="text-muted">
+                                    {{ appointment.scheduled_time }} - 
+                                    {{ appointment.customer.base_user.user.get_full_name }}
+                                </small>
+                            </div>
+                        {% empty %}
+                            <p class="text-muted">No appointments scheduled for today.</p>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+</div>
+
+<!-- Reply Message Modal -->
+<div class="modal fade" id="replyMessageModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Reply to Message</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="replyForm" method="post">
+                {% csrf_token %}
+                <input type="hidden" name="message_id" id="message_id">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="reply" class="form-label">Your Reply</label>
+                        <textarea class="form-control" id="reply" name="reply" rows="3" required></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Send Reply</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.0/dist/chart.min.js"></script>
+<script>
+    // Initialize charts if admin/manager dashboard
+    {% if user.baseuser.user_type in 'ADMIN,MANAGER' %}
+        const revenueCtx = document.getElementById('revenueChart').getContext('2d');
+        new Chart(revenueCtx, {
+            type: 'line',
+            data: {
+                labels: {{ revenue_dates|safe }},
+                datasets: [{
+                    label: 'Revenue',
+                    data: {{ revenue_data|safe }},
+                    borderColor: '#0d6efd',
+                    tension: 0.1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return '$' + value;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    {% endif %}
+
+    // Handle service status updates for technicians
+    function startService(appointmentId) {
+        updateServiceStatus(appointmentId, 'start');
+    }
+
+    function completeService(appointmentId) {
+        updateServiceStatus(appointmentId, 'complete');
+    }
+
+    function updateServiceStatus(appointmentId, action) {
+        fetch(`/service/api/appointment/${appointmentId}/${action}/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken'),
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                showAlert(data.error || 'An error occurred.', 'danger');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showAlert('An error occurred while updating the service status.', 'danger');
+        });
+    }
+
+    // Handle message replies for secretaries
+    function showReplyForm(messageId) {
+        document.getElementById('message_id').value = messageId;
+        new bootstrap.Modal(document.getElementById('replyMessageModal')).show();
+    }
+
+    document.getElementById('replyForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const formData = new FormData(this);
+        
+        fetch('/service/api/message/reply/', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken'),
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(Object.fromEntries(formData))
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                showAlert(data.error || 'An error occurred.', 'danger');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showAlert('An error occurred while sending the reply.', 'danger');
+        });
+    });
+</script>
+{% endblock %} 

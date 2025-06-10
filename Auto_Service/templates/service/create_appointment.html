@@ -1,0 +1,84 @@
+{% extends 'base.html' %}
+{% load form_tags %}
+
+{% block title %}Book Appointment - Auto Service{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow">
+                <div class="card-body">
+                    <h2 class="card-title text-center mb-4">Book an Appointment</h2>
+                    {% if not user.baseuser.customer.vehicles.exists %}
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            You need to register a vehicle before booking an appointment.
+                            <a href="{% url 'service:vehicle_register' %}" class="btn btn-warning btn-sm ms-2">
+                                Register Vehicle
+                            </a>
+                        </div>
+                    {% else %}
+                        {% if form.non_field_errors %}
+                            <div class="alert alert-danger">
+                                {% for error in form.non_field_errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                        <form method="post" novalidate>
+                            {% csrf_token %}
+                            <div class="mb-3">
+                                <label for="{{ form.service_type.id_for_label }}" class="form-label">Service Type</label>
+                                {{ form.service_type|addclass:"form-control" }}
+                                {% if form.service_type.errors %}
+                                    <div class="text-danger">{{ form.service_type.errors|join:", " }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="mb-3">
+                                <label for="{{ form.vehicle.id_for_label }}" class="form-label">Vehicle</label>
+                                {{ form.vehicle|addclass:"form-control" }}
+                                {% if form.vehicle.errors %}
+                                    <div class="text-danger">{{ form.vehicle.errors|join:", " }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="{{ form.scheduled_date.id_for_label }}" class="form-label">Date</label>
+                                        {{ form.scheduled_date|addclass:"form-control" }}
+                                        {% if form.scheduled_date.errors %}
+                                            <div class="text-danger">{{ form.scheduled_date.errors|join:", " }}</div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="{{ form.scheduled_time.id_for_label }}" class="form-label">Time</label>
+                                        {{ form.scheduled_time|addclass:"form-control" }}
+                                        {% if form.scheduled_time.errors %}
+                                            <div class="text-danger">{{ form.scheduled_time.errors|join:", " }}</div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="{{ form.notes.id_for_label }}" class="form-label">Additional Notes</label>
+                                {{ form.notes|addclass:"form-control" }}
+                                {% if form.notes.errors %}
+                                    <div class="text-danger">{{ form.notes.errors|join:", " }}</div>
+                                {% endif %}
+                                <div class="form-text">Optional: Add any specific requirements or concerns</div>
+                            </div>
+                            <div class="d-grid gap-2">
+                                <button type="submit" class="btn btn-primary">Book Appointment</button>
+                                <a href="{% url 'service:dashboard' %}" class="btn btn-outline-secondary">Cancel</a>
+                            </div>
+                        </form>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

@@ -3,6 +3,7 @@
         "model": "auth.user",
         "pk": 1,
         "fields": {
+            "password": "pbkdf2_sha256$720000$cJ6HqZhjpNDKgT9eBk2zqM$2J3f4Vv4Y5m6N7b8Q9w0X1c2v3b4n5m6q7s8w9e0=",
             "username": "admin",
             "first_name": "Denis",
             "last_name": "Vasilev",
@@ -17,22 +18,11 @@
         "model": "auth.user",
         "pk": 2,
         "fields": {
+            "password": "pbkdf2_sha256$720000$cJ6HqZhjpNDKgT9eBk2zqM$2J3f4Vv4Y5m6N7b8Q9w0X1c2v3b4n5m6q7s8w9e0=",
             "username": "owner",
             "first_name": "John",
             "last_name": "Duton",
             "email": "johnduton@autoservice.com",
-            "is_active": true,
-            "date_joined": "2024-03-15T10:00:00Z"
-        }
-    },
-    {
-        "model": "auth.user",
-        "pk": 3,
-        "fields": {
-            "username": "customer1",
-            "first_name": "Alice",
-            "last_name": "Wonderland",
-            "email": "alicewonderland@gmail.com",
             "is_active": true,
             "date_joined": "2024-03-15T10:00:00Z"
         }
@@ -55,138 +45,179 @@
         "fields": {
             "user": 2,
             "user_type": "OWNER",
-            "phone_number": "+436649876543210",
+            "phone_number": "+436649876543211",
             "address": "456 Owner Ave",
             "created_at": "2024-03-15T10:00:00Z",
             "updated_at": "2024-03-15T10:00:00Z"
         }
     },
     {
-        "model": "service.baseuser",
+        "model": "service.employee",
         "pk": "f47ac10b-58cc-4372-a567-0e02b2c3d481",
         "fields": {
-            "user": 3,
-            "user_type": "CUSTOMER",
-            "phone_number": "+436649876543210",
-            "address": "789 Customer Rd",
+            "base_user": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+            "hire_date": "2024-01-01",
+            "salary": "65000.00",
+            "is_active": true,
             "created_at": "2024-03-15T10:00:00Z",
             "updated_at": "2024-03-15T10:00:00Z"
         }
     },
     {
-        "model": "service.customer",
-        "pk": "f47ac10b-58cc-4372-a567-0e02b2c3d482",
+        "model": "service.equipment",
+        "pk": "f47ac10b-58cc-4372-a567-0e02b2c3d600",
         "fields": {
-            "base_user": "f47ac10b-58cc-4372-a567-0e02b2c3d481",
-            "preferred_contact_method": "EMAIL",
+            "name": "Hydraulic Lift",
+            "description": "Heavy-duty hydraulic lift for vehicle elevation",
+            "purchase_date": "2024-01-01",
+            "last_maintenance": "2024-03-01",
+            "next_maintenance": "2024-04-01",
+            "status": "OPERATIONAL",
+            "created_at": "2024-03-15T10:00:00Z",
+            "updated_at": "2024-03-15T10:00:00Z"
+        }
+    },
+    {
+        "model": "service.equipment",
+        "pk": "f47ac10b-58cc-4372-a567-0e02b2c3d601",
+        "fields": {
+            "name": "Diagnostic Scanner",
+            "description": "Advanced OBD-II diagnostic scanner",
+            "purchase_date": "2024-01-01",
+            "last_maintenance": "2024-02-15",
+            "next_maintenance": "2024-03-15",
+            "status": "OPERATIONAL",
+            "created_at": "2024-03-15T10:00:00Z",
+            "updated_at": "2024-03-15T10:00:00Z"
+        }
+    },
+    {
+        "model": "service.equipment",
+        "pk": "f47ac10b-58cc-4372-a567-0e02b2c3d602",
+        "fields": {
+            "name": "Paint Booth",
+            "description": "Professional automotive paint booth with ventilation",
+            "purchase_date": "2024-01-01",
+            "last_maintenance": "2024-03-10",
+            "next_maintenance": "2024-03-17",
+            "status": "OPERATIONAL",
+            "created_at": "2024-03-15T10:00:00Z",
+            "updated_at": "2024-03-15T10:00:00Z"
+        }
+    },
+    {
+        "model": "service.equipment",
+        "pk": "f47ac10b-58cc-4372-a567-0e02b2c3d603",
+        "fields": {
+            "name": "Wheel Alignment System",
+            "description": "Computerized wheel alignment system",
+            "purchase_date": "2024-01-01",
+            "last_maintenance": "2024-03-05",
+            "next_maintenance": "2024-04-05",
+            "status": "OPERATIONAL",
+            "created_at": "2024-03-15T10:00:00Z",
+            "updated_at": "2024-03-15T10:00:00Z"
+        }
+    },
+    {
+        "model": "service.certification",
+        "pk": "f47ac10b-58cc-4372-a567-0e02b2c3d604",
+        "fields": {
+            "name": "ASE Master Technician",
+            "description": "Automotive Service Excellence Master Certification",
+            "issuing_authority": "National Institute for Automotive Service Excellence",
+            "validity_years": 5,
+            "created_at": "2024-03-15T10:00:00Z",
+            "updated_at": "2024-03-15T10:00:00Z"
+        }
+    },
+    {
+        "model": "service.certification",
+        "pk": "f47ac10b-58cc-4372-a567-0e02b2c3d605",
+        "fields": {
+            "name": "Paint and Refinishing Certification",
+            "description": "Specialized certification for automotive painting",
+            "issuing_authority": "PPG Certification Program",
+            "validity_years": 2,
+            "created_at": "2024-03-15T10:00:00Z",
+            "updated_at": "2024-03-15T10:00:00Z"
+        }
+    },
+    {
+        "model": "service.certification",
+        "pk": "f47ac10b-58cc-4372-a567-0e02b2c3d606",
+        "fields": {
+            "name": "Advanced Diagnostic Specialist",
+            "description": "Certification for computerized diagnostic systems",
+            "issuing_authority": "Automotive Diagnostic Association",
+            "validity_years": 3,
             "created_at": "2024-03-15T10:00:00Z",
             "updated_at": "2024-03-15T10:00:00Z"
         }
     },
     {
         "model": "service.repairshop",
-        "pk": "f47ac10b-58cc-4372-a567-0e02b2c3d483",
+        "pk": "f47ac10b-58cc-4372-a567-0e02b2c3d607",
         "fields": {
             "name": "Auto Service",
-            "address": "Alauntalstrasse, Krems a.d. Donau, Austria",
-            "phone_number": "+436649876543210",
-            "email": "contact@autoservice.com",
+            "address": "789 Service Road, Vienna, Austria",
+            "phone": "+43664987654321",
+            "email": "info@autoservicepro.at",
             "owner": "f47ac10b-58cc-4372-a567-0e02b2c3d480",
+            "tax_id": "AT123456789",
+            "website": "https://autoservicepro.at",
+            "registration_number": "FN123456a",
+            "founded_date": "2010-01-01",
+            "business_hours": {
+                "Monday": "09:00 - 18:00",
+                "Tuesday": "09:00 - 18:00",
+                "Wednesday": "09:00 - 18:00",
+                "Thursday": "09:00 - 18:00",
+                "Friday": "09:00 - 17:00",
+                "Saturday": "10:00 - 14:00",
+                "Sunday": "Closed"
+            },
             "created_at": "2024-03-15T10:00:00Z",
             "updated_at": "2024-03-15T10:00:00Z"
         }
     },
     {
         "model": "service.facility",
-        "pk": "f47ac10b-58cc-4372-a567-0e02b2c3d484",
+        "pk": "f47ac10b-58cc-4372-a567-0e02b2c3d608",
         "fields": {
             "name": "Main Service Center",
             "facility_type": "MAINTENANCE",
-            "description": "General maintenance and repairs",
+            "description": "Our main service center for all types of repairs",
             "is_active": true,
-            "repair_shop": "f47ac10b-58cc-4372-a567-0e02b2c3d483",
-            "created_at": "2024-03-15T10:00:00Z",
-            "updated_at": "2024-03-15T10:00:00Z"
-        }
-    },
-    {
-        "model": "service.facility",
-        "pk": "f47ac10b-58cc-4372-a567-0e02b2c3d485",
-        "fields": {
-            "name": "Premium Paint Shop",
-            "facility_type": "PAINT",
-            "description": "Professional painting and finishing",
-            "is_active": true,
-            "repair_shop": "f47ac10b-58cc-4372-a567-0e02b2c3d483",
+            "repair_shop": "f47ac10b-58cc-4372-a567-0e02b2c3d607",
+            "capacity": 5,
             "created_at": "2024-03-15T10:00:00Z",
             "updated_at": "2024-03-15T10:00:00Z"
         }
     },
     {
         "model": "service.schedule",
-        "pk": "f47ac10b-58cc-4372-a567-0e02b2c3d486",
+        "pk": "f47ac10b-58cc-4372-a567-0e02b2c3d609",
         "fields": {
-            "facility": "f47ac10b-58cc-4372-a567-0e02b2c3d484",
+            "facility": "f47ac10b-58cc-4372-a567-0e02b2c3d608",
             "opening_time": "09:00:00",
             "closing_time": "17:00:00",
             "is_open_weekends": false,
-            "max_daily_appointments": 10,
-            "created_at": "2024-03-15T10:00:00Z",
-            "updated_at": "2024-03-15T10:00:00Z"
-        }
-    },
-    {
-        "model": "service.schedule",
-        "pk": "f47ac10b-58cc-4372-a567-0e02b2c3d487",
-        "fields": {
-            "facility": "f47ac10b-58cc-4372-a567-0e02b2c3d485",
-            "opening_time": "09:00:00",
-            "closing_time": "17:00:00",
-            "is_open_weekends": false,
-            "max_daily_appointments": 5,
+            "max_daily_appointments": 20,
             "created_at": "2024-03-15T10:00:00Z",
             "updated_at": "2024-03-15T10:00:00Z"
         }
     },
     {
         "model": "service.servicetype",
-        "pk": "f47ac10b-58cc-4372-a567-0e02b2c3d488",
+        "pk": "f47ac10b-58cc-4372-a567-0e02b2c3d610",
         "fields": {
-            "name": "Oil Change",
-            "description": "Standard oil change service",
-            "duration_minutes": 30,
-            "price": "49.99",
-            "facility": "f47ac10b-58cc-4372-a567-0e02b2c3d484",
+            "name": "Basic Service",
+            "description": "Basic vehicle maintenance service including oil change and inspection",
+            "duration_minutes": 60,
+            "price": "89.99",
+            "facility": "f47ac10b-58cc-4372-a567-0e02b2c3d608",
             "maintenance_interval_months": 6,
-            "created_at": "2024-03-15T10:00:00Z",
-            "updated_at": "2024-03-15T10:00:00Z"
-        }
-    },
-    {
-        "model": "service.servicetype",
-        "pk": "f47ac10b-58cc-4372-a567-0e02b2c3d489",
-        "fields": {
-            "name": "Full Body Paint",
-            "description": "Complete vehicle painting service",
-            "duration_minutes": 480,
-            "price": "1999.99",
-            "facility": "f47ac10b-58cc-4372-a567-0e02b2c3d485",
-            "maintenance_interval_months": null,
-            "created_at": "2024-03-15T10:00:00Z",
-            "updated_at": "2024-03-15T10:00:00Z"
-        }
-    },
-    {
-        "model": "service.vehicle",
-        "pk": "f47ac10b-58cc-4372-a567-0e02b2c3d490",
-        "fields": {
-            "owner": "f47ac10b-58cc-4372-a567-0e02b2c3d482",
-            "vin": "1HGCM82633A123456",
-            "make": "Honda",
-            "model": "Accord",
-            "year": 2020,
-            "color": "Silver",
-            "license_plate": "ABC123",
             "created_at": "2024-03-15T10:00:00Z",
             "updated_at": "2024-03-15T10:00:00Z"
         }

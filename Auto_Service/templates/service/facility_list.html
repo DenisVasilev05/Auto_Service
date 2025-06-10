@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+
+{% block title %}Our Facilities - Auto Service{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1 class="text-center mb-5">Our Facilities</h1>
+    
+    <div class="row">
+        {% for facility in facilities %}
+            <div class="col-md-6 mb-4">
+                <div class="card h-100 shadow">
+                    {% if facility.image %}
+                        <img src="{{ facility.image.url }}" class="card-img-top" alt="{{ facility.name }}">
+                    {% endif %}
+                    <div class="card-body">
+                        <h5 class="card-title">{{ facility.name }}</h5>
+                        <p class="card-text">{{ facility.description }}</p>
+                        <div class="mb-3">
+                            <strong>Address:</strong><br>
+                            {{ facility.address }}
+                        </div>
+                        <div class="mb-3">
+                            <strong>Working Hours:</strong><br>
+                            {{ facility.working_hours }}
+                        </div>
+                        <div class="mb-3">
+                            <strong>Available Equipment:</strong><br>
+                            <ul class="list-unstyled">
+                                {% for equipment in facility.equipment.all %}
+                                    <li><i class="bi bi-check-circle-fill text-success"></i> {{ equipment.name }}</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                        <a href="{% url 'service:facility_detail' facility.id %}" class="btn btn-primary">View Details</a>
+                        {% if user.is_authenticated %}
+                            <a href="{% url 'service:create_appointment' %}?facility={{ facility.id }}" class="btn btn-outline-primary">Book Appointment</a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        {% empty %}
+            <div class="col-12">
+                <div class="alert alert-info text-center">
+                    No facilities available at the moment.
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %} 

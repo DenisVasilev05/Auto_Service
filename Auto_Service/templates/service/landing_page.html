@@ -1,0 +1,183 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load service_extras %}
+
+{% block title %}Welcome to Auto Service{% endblock %}
+
+{% block extra_css %}
+<style>
+    .hero {
+        background: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url('{% static "images/hero-bg.jpg" %}');
+        background-size: cover;
+        background-position: center;
+        color: white;
+        padding: 100px 0;
+        margin-bottom: 3rem;
+    }
+
+    .feature-icon {
+        font-size: 2.5rem;
+        color: var(--primary-color);
+        margin-bottom: 1rem;
+    }
+
+    .testimonial-avatar {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        margin-bottom: 1rem;
+    }
+
+    .facility-image {
+        height: 200px;
+        object-fit: cover;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<section class="hero text-center">
+    <div class="container">
+        <h1 class="display-4">Professional Auto Service</h1>
+        <p class="lead">Your trusted partner for all automotive needs</p>
+        {% if not user.is_authenticated %}
+            <div class="mt-4">
+                <a href="{% url 'service:signup' %}" class="btn btn-primary btn-lg me-3">Sign Up</a>
+                <a href="{% url 'service:login' %}" class="btn btn-outline-light btn-lg">Login</a>
+            </div>
+        {% else %}
+            <div class="mt-4">
+                <a href="{% url 'service:create_appointment' %}" class="btn btn-primary btn-lg">Book an Appointment</a>
+            </div>
+        {% endif %}
+    </div>
+</section>
+
+<!-- Features Section -->
+<section class="container mb-5">
+    <h2 class="text-center mb-4">Why Choose Us</h2>
+    <div class="row g-4">
+        <div class="col-md-4">
+            <div class="text-center">
+                <div class="feature-icon">
+                    <i class="fas fa-tools"></i>
+                </div>
+                <h3>Expert Technicians</h3>
+                <p>Our certified technicians have years of experience and ongoing training to provide the best service.</p>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="text-center">
+                <div class="feature-icon">
+                    <i class="fas fa-clock"></i>
+                </div>
+                <h3>Quick Service</h3>
+                <p>We value your time. Get your vehicle serviced quickly without compromising on quality.</p>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="text-center">
+                <div class="feature-icon">
+                    <i class="fas fa-shield-alt"></i>
+                </div>
+                <h3>Quality Guarantee</h3>
+                <p>We stand behind our work with comprehensive warranties and guarantees.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Facilities Section -->
+<section class="container mb-5">
+    <h2 class="text-center mb-4">Our Facilities</h2>
+    <div class="row g-4">
+        {% for facility in facilities %}
+            <div class="col-md-4">
+                <div class="card facility-card h-100">
+                    {% if facility.image %}
+                        <img src="{{ facility.image.url }}" class="card-img-top facility-image" alt="{{ facility.name }}">
+                    {% else %}
+                        <img src="{% static 'images/facility-placeholder.jpg' %}" class="card-img-top facility-image" alt="{{ facility.name }}">
+                    {% endif %}
+                    <div class="card-body">
+                        <h5 class="card-title">{{ facility.name }}</h5>
+                        <p class="card-text">{{ facility.description|truncatewords:20 }}</p>
+                        <a href="{% url 'service:facility_detail' facility.id %}" class="btn btn-outline-primary">Learn More</a>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+</section>
+
+<!-- Services Section -->
+<section class="container mb-5">
+    <h2 class="text-center mb-4">Our Services</h2>
+    <div class="row g-4">
+        {% for service in featured_services %}
+            <div class="col-md-4">
+                <div class="card service-card h-100">
+                    <div class="card-body">
+                        <h5 class="card-title">{{ service.name }}</h5>
+                        <p class="card-text">{{ service.description|truncatewords:20 }}</p>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="price">${{ service.price }}</span>
+                            <span class="duration">{{ service.duration_minutes }} mins</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+</section>
+
+<!-- Testimonials Section -->
+<section class="container mb-5">
+    <h2 class="text-center mb-4">What Our Customers Say</h2>
+    <div class="row g-4">
+        {% for review in featured_reviews %}
+            <div class="col-md-4">
+                <div class="card h-100">
+                    <div class="card-body text-center">
+                        {% if review.customer.avatar %}
+                            <img src="{{ review.customer.avatar.url }}" class="testimonial-avatar" alt="{{ review.customer.name }}">
+                        {% else %}
+                            <img src="{% static 'images/avatar-placeholder.jpg' %}" class="testimonial-avatar" alt="{{ review.customer.name }}">
+                        {% endif %}
+                        <div class="star-rating mb-2">
+                            {% for i in review.rating|get_range %}
+                                <i class="fas fa-star"></i>
+                            {% endfor %}
+                        </div>
+                        <p class="card-text">{{ review.comment|truncatewords:30 }}</p>
+                        <footer class="blockquote-footer mt-2">
+                            {{ review.customer.name }}
+                            <cite title="Service">{{ review.appointment.service_type.name }}</cite>
+                        </footer>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+</section>
+
+<!-- CTA Section -->
+<section class="container mb-5">
+    <div class="p-5 text-center bg-light rounded-3">
+        <h2 class="mb-4">Ready to Experience Our Service?</h2>
+        <p class="lead mb-4">Join our satisfied customers and let us take care of your vehicle.</p>
+        {% if user.is_authenticated %}
+            <a href="{% url 'service:create_appointment' %}" class="btn btn-primary btn-lg">Schedule Service Now</a>
+        {% else %}
+            <a href="{% url 'service:signup' %}" class="btn btn-primary btn-lg">Get Started Today</a>
+        {% endif %}
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Add any landing page specific JavaScript here
+</script>
+{% endblock %} 
