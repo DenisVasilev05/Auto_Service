@@ -52,7 +52,7 @@ py manage.py migrate
 
 SQLite is used for data persistence
 
-### 6. Load demo data
+### 5. Load demo data
 
 ```bash
 py manage.py seed_demo_data --reset
@@ -62,7 +62,7 @@ The singleton pattern is implemented in the model to assure that only one instan
 Keep in mind that the seeding takes some time.
 After seeding, a single password (pass@1234) is assigned to all generated users and is printed in the console.
 
-### 5. (Optional) create a super-user to gain access to the admin interface
+### 6. (Optional) create a super-user to gain access to the admin interface
 
 ```bash
 py manage.py createsuperuser
