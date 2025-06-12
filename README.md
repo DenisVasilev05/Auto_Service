@@ -69,6 +69,8 @@ This command fills the DB with a repair-shop profile, facilities, customers, emp
 The singleton pattern is implemented in the model to assure that only one instance of the repair shop is created.
 Keep in mind that the seeding takes some time.
 After seeding, a single password (pass@1234) is assigned to all generated users and is printed in the console.
+Available usernames: customer1, customer2, customer3 ...
+                     tech1, tech2, tech3 ...
 
 ### 6. (Optional) create a super-user to gain access to the admin interface
 
@@ -104,7 +106,7 @@ Open http://127.0.0.1:8000/ in your browser
 
 ### Technician Workflow
 
-*Log in with a staff account that has the `TECHNICIAN` role (seed script creates a few).*  The dashboard lists today's jobs and upcoming appointments. Technicians can:
+*Log in with a staff account that has the `TECHNICIAN` role (username: tech1 or tech2 or tech3 ...) (seed script creates a few).*  The dashboard lists today's jobs and upcoming appointments. Technicians can:
 
 * Start an appointment → status becomes **IN_PROGRESS**.
 * Complete an appointment → customer is notified & can review.
