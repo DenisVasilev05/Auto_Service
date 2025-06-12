@@ -7,7 +7,7 @@
 {% block extra_css %}
 <style>
     .hero {
-        background: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url('{% static "images/hero-bg.jpg" %}');
+        background: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url('{% static "images/hero-bg.png" %}');
         background-size: cover;
         background-position: center;
         color: white;
@@ -46,7 +46,7 @@
                 <a href="{% url 'service:signup' %}" class="btn btn-primary btn-lg me-3">Sign Up</a>
                 <a href="{% url 'service:login' %}" class="btn btn-outline-light btn-lg">Login</a>
             </div>
-        {% else %}
+        {% elif user.baseuser.user_type == 'CUSTOMER' %}
             <div class="mt-4">
                 <a href="{% url 'service:create_appointment' %}" class="btn btn-primary btn-lg">Book an Appointment</a>
             </div>
@@ -90,7 +90,7 @@
 
 <!-- Facilities Section -->
 <section class="container mb-5">
-    <h2 class="text-center mb-4">Our Facilities</h2>
+    <h2 class="text-center mb-4">Some of our facilities</h2>
     <div class="row g-4">
         {% for facility in facilities %}
             <div class="col-md-4">
@@ -98,7 +98,15 @@
                     {% if facility.image %}
                         <img src="{{ facility.image.url }}" class="card-img-top facility-image" alt="{{ facility.name }}">
                     {% else %}
-                        <img src="{% static 'images/facility-placeholder.jpg' %}" class="card-img-top facility-image" alt="{{ facility.name }}">
+                        {% if facility.facility_type == 'TUNING' %}
+                            {% with img_path='images/facilities/tuning.png' %}
+                                <img src="{% static img_path %}" class="card-img-top facility-image" alt="{{ facility.name }}">
+                            {% endwith %}
+                        {% else %}
+                            {% with img_path='images/facilities/'|add:facility.facility_type|lower|add:'.jpg' %}
+                                <img src="{% static img_path %}" class="card-img-top facility-image" alt="{{ facility.name }}">
+                            {% endwith %}
+                        {% endif %}
                     {% endif %}
                     <div class="card-body">
                         <h5 class="card-title">{{ facility.name }}</h5>
@@ -113,7 +121,7 @@
 
 <!-- Services Section -->
 <section class="container mb-5">
-    <h2 class="text-center mb-4">Our Services</h2>
+    <h2 class="text-center mb-4">Some of our services</h2>
     <div class="row g-4">
         {% for service in featured_services %}
             <div class="col-md-4">
@@ -122,7 +130,7 @@
                         <h5 class="card-title">{{ service.name }}</h5>
                         <p class="card-text">{{ service.description|truncatewords:20 }}</p>
                         <div class="d-flex justify-content-between align-items-center">
-                            <span class="price">${{ service.price }}</span>
+                            <span class="price">€{{ service.price }}</span>
                             <span class="duration">{{ service.duration_minutes }} mins</span>
                         </div>
                     </div>
@@ -134,17 +142,13 @@
 
 <!-- Testimonials Section -->
 <section class="container mb-5">
-    <h2 class="text-center mb-4">What Our Customers Say</h2>
+    <h2 class="text-center mb-4">What our customers say</h2>
     <div class="row g-4">
         {% for review in featured_reviews %}
             <div class="col-md-4">
                 <div class="card h-100">
                     <div class="card-body text-center">
-                        {% if review.customer.avatar %}
-                            <img src="{{ review.customer.avatar.url }}" class="testimonial-avatar" alt="{{ review.customer.name }}">
-                        {% else %}
-                            <img src="{% static 'images/avatar-placeholder.jpg' %}" class="testimonial-avatar" alt="{{ review.customer.name }}">
-                        {% endif %}
+                        <img src="{% static 'images/avatars/avatar.png' %}" class="testimonial-avatar" alt="{{ review.customer.base_user.user.get_full_name }}">
                         <div class="star-rating mb-2">
                             {% for i in review.rating|get_range %}
                                 <i class="fas fa-star"></i>
@@ -167,9 +171,9 @@
     <div class="p-5 text-center bg-light rounded-3">
         <h2 class="mb-4">Ready to Experience Our Service?</h2>
         <p class="lead mb-4">Join our satisfied customers and let us take care of your vehicle.</p>
-        {% if user.is_authenticated %}
+        {% if user.is_authenticated and user.baseuser.user_type == 'CUSTOMER' %}
             <a href="{% url 'service:create_appointment' %}" class="btn btn-primary btn-lg">Schedule Service Now</a>
-        {% else %}
+        {% elif not user.is_authenticated %}
             <a href="{% url 'service:signup' %}" class="btn btn-primary btn-lg">Get Started Today</a>
         {% endif %}
     </div>

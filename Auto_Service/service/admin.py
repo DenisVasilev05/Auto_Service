@@ -55,8 +55,8 @@ class CustomerAdmin(BaseModelAdmin):
 
 @admin.register(Vehicle)
 class VehicleAdmin(BaseModelAdmin):
-    list_display = ('vin', 'make', 'model', 'year', 'owner', 'license_plate')
-    list_filter = ('make', 'year')
+    list_display = ('vin', 'make', 'model', 'year', 'registration_date', 'owner', 'license_plate')
+    list_filter = ('make', 'year', 'registration_date')
     search_fields = ('vin', 'license_plate', 'owner__base_user__user__username')
     raw_id_fields = ('owner',)
 

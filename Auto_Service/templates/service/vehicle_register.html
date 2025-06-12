@@ -87,7 +87,7 @@
                             {% endfor %}
                         </div>
                     {% endif %}
-                    <form method="post" novalidate>
+                    <form id="vehicleForm" method="post" enctype="multipart/form-data" novalidate>
                         {% csrf_token %}
                         <div class="row">
                             <div class="col-md-6">
@@ -150,11 +150,38 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="mb-3">
-                            <label for="{{ form.mileage.id_for_label }}" class="form-label">Current Mileage (km)</label>
-                            {{ form.mileage|addclass:"form-control" }}
-                            {% if form.mileage.errors %}
-                                <div class="text-danger">{{ form.mileage.errors|join:", " }}</div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="{{ form.registration_date.id_for_label }}" class="form-label">Registration Date</label>
+                                    {{ form.registration_date|addclass:"form-control" }}
+                                    {% if form.registration_date.errors %}
+                                        <div class="text-danger">{{ form.registration_date.errors|join:", " }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="{{ form.mileage.id_for_label }}" class="form-label">Current Mileage (km)</label>
+                                    {{ form.mileage|addclass:"form-control" }}
+                                    {% if form.mileage.errors %}
+                                        <div class="text-danger">{{ form.mileage.errors|join:", " }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Vehicle preview placeholder -->
+                        <div class="vehicle-preview mb-4">
+                            <i class="fas fa-car"></i>
+                            <img id="vehicleImage" alt="Vehicle preview">
+                        </div>
+                        <!-- Image upload -->
+                        <div class="mb-4">
+                            <label class="form-label">Vehicle Photo</label>
+                            {{ form.image|addclass:"form-control" }}
+                            <div class="form-text">Optional – upload a photo of your vehicle (jpg, png).</div>
+                            {% if form.image.errors %}
+                                <div class="text-danger">{{ form.image.errors|join:", " }}</div>
                             {% endif %}
                         </div>
                         <div class="d-grid gap-2">
@@ -252,31 +279,5 @@
             vinInput.setCustomValidity('');
         }
     }
-
-    // Form submission
-    document.getElementById('vehicleForm').addEventListener('submit', function(e) {
-        e.preventDefault();
-        
-        if (this.checkValidity()) {
-            const formData = new FormData(this);
-            
-            fetch(this.action, {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    window.location.href = data.redirect_url;
-                } else {
-                    showAlert(data.error || 'An error occurred while registering the vehicle.', 'danger');
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                showAlert('An error occurred while registering the vehicle.', 'danger');
-            });
-        }
-    });
 </script>
 {% endblock %} 

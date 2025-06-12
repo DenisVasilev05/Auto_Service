@@ -43,17 +43,22 @@ class AppointmentForm(forms.ModelForm):
 class VehicleForm(forms.ModelForm):
     class Meta:
         model = Vehicle
-        fields = ['make', 'model', 'year', 'color', 'license_plate', 'vin', 'mileage']
+        fields = ['make', 'model', 'year', 'color', 'license_plate', 'vin', 'registration_date', 'mileage', 'image']
         widgets = {
             'year': forms.NumberInput(attrs={
                 'min': 1900,
                 'max': timezone.now().year + 1,
                 'class': 'form-control'
             }),
+            'registration_date': forms.DateInput(attrs={
+                'type': 'date',
+                'class': 'form-control'
+            }),
             'mileage': forms.NumberInput(attrs={
                 'min': 0,
                 'class': 'form-control'
             }),
+            'image': forms.FileInput(attrs={'class': 'form-control', 'accept': 'image/*', 'id': 'imageInput'}),
         }
 
     def __init__(self, *args, **kwargs):
@@ -61,4 +66,14 @@ class VehicleForm(forms.ModelForm):
         # Add Bootstrap classes
         for field in self.fields:
             if not isinstance(self.fields[field].widget, forms.NumberInput):
-                self.fields[field].widget.attrs['class'] = 'form-control' 
+                self.fields[field].widget.attrs['class'] = 'form-control'
+        # Ensure predictable IDs for JS selectors
+        id_map = {
+            'vin': 'vin',
+            'year': 'year',
+            'license_plate': 'license_plate',
+            'mileage': 'mileage',
+        }
+        for field, element_id in id_map.items():
+            if field in self.fields:
+                self.fields[field].widget.attrs['id'] = element_id 

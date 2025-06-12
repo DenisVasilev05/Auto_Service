@@ -5,10 +5,13 @@ from django.contrib import messages
 from django.utils import timezone
 from .models import (
     Facility, ServiceType, Employee, Customer, Appointment, Vehicle,
-    Review, BaseUser, TechnicianAvailability, RepairShop
+    Review, BaseUser, TechnicianAvailability, RepairShop, Notification
 )
 from .forms import UserRegistrationForm, LoginForm, AppointmentForm, VehicleForm
 from django.http import JsonResponse
+from django.views.decorators.http import require_POST
+import json
+from django.db import models
 
 def get_base_context(request):
     """Get base context data for all views"""
@@ -81,7 +84,6 @@ def signup_view(request):
         form = UserRegistrationForm(request.POST)
         if form.is_valid():
             user = form.save()
-            # Create BaseUser and Customer records
             base_user = BaseUser.objects.create(
                 user=user,
                 user_type='CUSTOMER',
@@ -104,39 +106,81 @@ def dashboard(request):
     base_user = request.user.baseuser
     today = timezone.now().date()
 
-    if base_user.user_type == 'TECHNICIAN':
-        # Employee dashboard
+    context = {}
+
+    if base_user.user_type == 'CUSTOMER':
+        customer = get_object_or_404(Customer, base_user=base_user)
+        vehicles = customer.vehicles.all()
+        # Back-fill last_service_date for any vehicle that still has null (legacy data)
+        for v in vehicles:
+            if v.last_service_date is None:
+                last_completed = v.appointments.filter(status='COMPLETED').aggregate(
+                    last_date=models.Max('scheduled_date')
+                )['last_date']
+                if last_completed:
+                    v.last_service_date = last_completed
+                    v.save(update_fields=['last_service_date'])
+        appointments = Appointment.objects.filter(vehicle__owner=customer)
+        # Include both scheduled appointments in the future as well as services that have already started but
+        # are not yet completed so the customer always sees every upcoming service slot.
+        active_appointments_count = appointments.filter(
+            status__in=['SCHEDULED', 'IN_PROGRESS'],
+            scheduled_date__gte=today
+        ).distinct().count()
+        vehicles_count = vehicles.count()
+        total_services_count = appointments.count()
+        # Fetch **all** upcoming appointments (future scheduled + currently in-progress) across every vehicle
+        # owned by the customer.
+        upcoming_appointments = appointments.filter(
+            status__in=['SCHEDULED', 'IN_PROGRESS'],
+            scheduled_date__gte=today
+        ).order_by('scheduled_date', 'scheduled_time').distinct()
+        recent_reviews = Review.objects.filter(appointment__customer=customer).order_by('-created_at')[:5]
+
+        context.update({
+            'vehicles': vehicles,
+            'appointments': appointments,
+            'active_appointments_count': active_appointments_count,
+            'vehicles_count': vehicles_count,
+            'total_services_count': total_services_count,
+            'upcoming_appointments': upcoming_appointments,
+            'recent_reviews': recent_reviews,
+        })
+
+    elif base_user.user_type == 'TECHNICIAN':
         employee = get_object_or_404(Employee, base_user=base_user)
         appointments = Appointment.objects.filter(assigned_technician=employee)
-        today_appointments_count = appointments.filter(scheduled_date=today).count()
-        completed_today = appointments.filter(scheduled_date=today, status='COMPLETED').count()
-        pending_count = appointments.filter(status='SCHEDULED').count()
-        upcoming_count = appointments.filter(scheduled_date__gt=today).count()
+        today_appointments = appointments.filter(scheduled_date=today).exclude(status='CANCELLED')
+        upcoming_appointments = appointments.filter(status='SCHEDULED', scheduled_date__gt=today)
+        context.update({
+            'appointments': appointments,
+            'today_appointments': today_appointments,
+            'today_appointments_count': today_appointments.count(),
+            'upcoming_appointments': upcoming_appointments,
+        })
 
-        context = {
-            'appointments': appointments,
-            'today': today,
-            'today_appointments_count': today_appointments_count,
-            'completed_today': completed_today,
-            'pending_count': pending_count,
-            'upcoming_count': upcoming_count,
-        }
-        template = 'service/dashboard_employee.html'
-    else:
-        # Customer dashboard
-        customer = get_object_or_404(Customer, base_user=base_user)
-        appointments = Appointment.objects.filter(customer=customer)
-        context = {
-            'appointments': appointments,
-        }
-        template = 'service/dashboard_customer.html'
-    
-    return render(request, template, context)
+    elif base_user.user_type == 'SECRETARY':
+        context['messages'] = request.user.baseuser.received_messages.all()
+
+    elif base_user.user_type in ['MANAGER', 'SUPERVISOR', 'STAFF', 'ADMIN', 'OWNER']:
+        context['appointments_count'] = Appointment.objects.count()
+        context['technicians_count'] = Employee.objects.filter(base_user__user_type='TECHNICIAN').count()
+
+    # Always include notifications list for the logged-in user
+    context['notifications'] = request.user.baseuser.notifications.all().order_by('-created_at')[:10]
+
+    context.update(get_base_context(request))
+
+    return render(request, 'service/dashboard.html', context)
 
 def facility_list(request):
     """Display list of all facilities"""
     facilities = Facility.objects.filter(is_active=True)
-    return render(request, 'service/facility_list.html', {'facilities': facilities})
+    context = {
+        'facilities': facilities,
+    }
+    context.update(get_base_context(request))
+    return render(request, 'service/facility_list.html', context)
 
 def facility_detail(request, facility_id):
     """Display detailed information about a specific facility"""
@@ -153,11 +197,17 @@ def facility_detail(request, facility_id):
         'services': services,
         'technicians': technicians,
     }
+    context.update(get_base_context(request))
     return render(request, 'service/facility_detail.html', context)
 
 @login_required
 def create_appointment(request):
     """Create a new appointment"""
+    # Restrict to customers only
+    if request.user.baseuser.user_type != 'CUSTOMER':
+        messages.error(request, 'Only customers can book appointments.')
+        return redirect('service:dashboard')
+
     if request.method == 'POST':
         form = AppointmentForm(request.POST)
         if form.is_valid():
@@ -169,6 +219,18 @@ def create_appointment(request):
             return redirect('service:dashboard')
     else:
         form = AppointmentForm()
+
+        # Pre-filter / pre-select service & facility if provided via query string
+        service_id  = request.GET.get('service_id') or request.GET.get('service')
+        facility_id = request.GET.get('facility_id') or request.GET.get('facility')
+
+        if facility_id:
+            # Limit the service dropdown to this facility's services only
+            form.fields['service_type'].queryset = ServiceType.objects.filter(facility_id=facility_id)
+
+        if service_id and ServiceType.objects.filter(id=service_id).exists():
+            form.initial['service_type'] = service_id
+
         # Only show vehicles owned by the current customer
         form.fields['vehicle'].queryset = Vehicle.objects.filter(owner__base_user=request.user.baseuser)
     
@@ -180,7 +242,7 @@ def create_appointment(request):
 def vehicle_register(request):
     """Register a new vehicle"""
     if request.method == 'POST':
-        form = VehicleForm(request.POST)
+        form = VehicleForm(request.POST, request.FILES)
         if form.is_valid():
             vehicle = form.save(commit=False)
             customer = get_object_or_404(Customer, base_user=request.user.baseuser)
@@ -189,31 +251,82 @@ def vehicle_register(request):
             return redirect('service:dashboard')
     else:
         form = VehicleForm()
-    return render(request, 'service/vehicle_register.html', {'form': form})
+    context = {'form': form}
+    context.update(get_base_context(request))
+    return render(request, 'service/vehicle_register.html', context)
 
 @login_required
 def notifications(request):
     """Display user notifications"""
-    notifications = request.user.baseuser.notifications.all()
-    return render(request, 'service/notifications.html', {'notifications': notifications})
+    user_notifications = request.user.baseuser.notifications.all()
+    context = {
+        'notifications': user_notifications,
+    }
+    context.update(get_base_context(request))
+    return render(request, 'service/notifications.html', context)
 
 @login_required
 def appointments(request):
-    """Display user appointments"""
+    """Display appointments list for the current user.
+    For technicians: shows their non-cancelled appointments ordered by date.
+    For customers: separates upcoming vs past services.
+    """
     base_user = request.user.baseuser
+
     if base_user.user_type == 'TECHNICIAN':
         employee = get_object_or_404(Employee, base_user=base_user)
-        appointments = Appointment.objects.filter(assigned_technician=employee)
+        today = timezone.localdate()
+        upcoming = Appointment.objects.filter(
+            assigned_technician=employee,
+            status__in=['SCHEDULED', 'IN_PROGRESS'],
+            scheduled_date__gte=today
+        ).order_by('scheduled_date', 'scheduled_time')
+
+        past = Appointment.objects.filter(
+            assigned_technician=employee,
+            status='COMPLETED'
+        ).order_by('-scheduled_date', '-scheduled_time')
+
+        context = {
+            'upcoming_appointments': upcoming,
+            'past_appointments': past,
+            'is_technician': True,
+        }
+
     else:
         customer = get_object_or_404(Customer, base_user=base_user)
-        appointments = Appointment.objects.filter(customer=customer)
-    return render(request, 'service/appointments.html', {'appointments': appointments})
+        today = timezone.localdate()
+        all_qs = Appointment.objects.filter(vehicle__owner=customer).select_related('service_type', 'vehicle')
+
+        # Same logic as for the dashboard – show both scheduled and in-progress future services.
+        upcoming = all_qs.filter(
+            status__in=['SCHEDULED', 'IN_PROGRESS'],
+            scheduled_date__gte=today
+        ).order_by('scheduled_date', 'scheduled_time').distinct()
+        # Any appointment that is not a future scheduled / in-progress service is considered past (completed, cancelled, or overdue).
+        past = all_qs.exclude(
+            status__in=['SCHEDULED', 'IN_PROGRESS'],
+            scheduled_date__gte=today
+        ).order_by('-scheduled_date', '-scheduled_time').distinct()
+
+        context = {
+            'upcoming_appointments': upcoming,
+            'past_appointments': past,
+            'is_technician': False,
+        }
+
+    context.update(get_base_context(request))
+    return render(request, 'service/appointments.html', context)
 
 @login_required
 def messages_view(request):
     """Display user messages"""
-    messages = request.user.baseuser.received_messages.all()
-    return render(request, 'service/messages.html', {'messages': messages})
+    messages_qs = request.user.baseuser.received_messages.all()
+    context = {
+        'messages': messages_qs,
+    }
+    context.update(get_base_context(request))
+    return render(request, 'service/messages.html', context)
 
 @login_required
 def vehicle_detail(request, vehicle_id):
@@ -277,7 +390,9 @@ def review_create(request, appointment_id):
         else:
             messages.error(request, 'Please provide both rating and comment.')
     
-    return render(request, 'service/review_create.html', {'appointment': appointment})
+    context = {'appointment': appointment}
+    context.update(get_base_context(request))
+    return render(request, 'service/review_create.html', context)
 
 @login_required
 def admin_analytics(request):
@@ -287,7 +402,9 @@ def admin_analytics(request):
         return redirect('service:dashboard')
     
     analytics = Analytics.objects.first()
-    return render(request, 'service/admin/analytics.html', {'analytics': analytics})
+    context = {'analytics': analytics}
+    context.update(get_base_context(request))
+    return render(request, 'service/admin/analytics.html', context)
 
 @login_required
 def admin_users(request):
@@ -297,7 +414,9 @@ def admin_users(request):
         return redirect('service:dashboard')
     
     users = BaseUser.objects.all().select_related('user')
-    return render(request, 'service/admin/users.html', {'users': users})
+    context = {'users': users}
+    context.update(get_base_context(request))
+    return render(request, 'service/admin/users.html', context)
 
 @login_required
 def admin_facilities(request):
@@ -307,7 +426,9 @@ def admin_facilities(request):
         return redirect('service:dashboard')
     
     facilities = Facility.objects.all()
-    return render(request, 'service/admin/facilities.html', {'facilities': facilities})
+    context = {'facilities': facilities}
+    context.update(get_base_context(request))
+    return render(request, 'service/admin/facilities.html', context)
 
 @login_required
 def api_facility_schedule(request, facility_id):
@@ -344,4 +465,70 @@ def api_mark_notification_read(request, notification_id):
     notification.save()
     return JsonResponse({'status': 'success'})
 
-# Other views will be implemented here
+@login_required
+@require_POST
+def api_notification_dismiss(request, notification_id):
+    """API endpoint to allow the logged-in user to permanently dismiss (delete) a notification."""
+    notification = get_object_or_404(Notification, id=notification_id, user=request.user.baseuser)
+    notification.delete()
+    return JsonResponse({
+        'success': True
+    })
+
+# ---------------------- Appointment state change APIs ----------------------
+
+@login_required
+@require_POST
+def api_appointment_start(request, appointment_id):
+    """Technician starts an appointment (moves to IN_PROGRESS)"""
+    if request.user.baseuser.user_type != 'TECHNICIAN':
+        return JsonResponse({'error': 'Forbidden'}, status=403)
+
+    appt = get_object_or_404(Appointment, id=appointment_id,
+                             assigned_technician__base_user=request.user.baseuser)
+
+    if appt.status != 'SCHEDULED':
+        return JsonResponse({'error': 'Only scheduled appointments can be started.'}, status=400)
+
+    appt.status = 'IN_PROGRESS'
+    appt.actual_start_time = timezone.now()
+    appt.save()
+    return JsonResponse({'success': True})
+
+@login_required
+@require_POST
+def api_appointment_complete(request, appointment_id):
+    """Technician completes an appointment (moves to COMPLETED)"""
+    if request.user.baseuser.user_type != 'TECHNICIAN':
+        return JsonResponse({'error': 'Forbidden'}, status=403)
+
+    appt = get_object_or_404(Appointment, id=appointment_id,
+                             assigned_technician__base_user=request.user.baseuser)
+
+    if appt.status != 'IN_PROGRESS':
+        return JsonResponse({'error': 'Only in-progress appointments can be completed.'}, status=400)
+
+    appt.status = 'COMPLETED'
+    appt.actual_end_time = timezone.now()
+
+    # Parse optional comment from request body
+    try:
+        payload = json.loads(request.body.decode()) if request.body else {}
+    except json.JSONDecodeError:
+        payload = {}
+
+    comment = payload.get('comment', '').strip()
+    if comment:
+        appt.notes = comment  # reuse notes field for technician comment
+    appt.save()
+
+    # Send notification to customer
+    Notification.objects.create(
+        user=appt.customer.base_user,
+        type='STATUS_UPDATE',
+        title='Service Completed',
+        message=f'Your appointment "{appt.service_type.name}" has been completed. {"Technician note: " + comment if comment else ""}',
+        related_appointment=appt
+    )
+
+    return JsonResponse({'success': True})

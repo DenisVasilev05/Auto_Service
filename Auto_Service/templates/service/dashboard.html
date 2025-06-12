@@ -158,8 +158,10 @@
                                 <div class="btn-group">
                                     <a href="{% url 'service:appointment_detail' appointment.id %}" 
                                        class="btn btn-sm btn-outline-primary">Details</a>
-                                    <a href="{% url 'service:appointment_cancel' appointment.id %}" 
-                                       class="btn btn-sm btn-outline-danger">Cancel</a>
+                                    {% if appointment.status == 'SCHEDULED' %}
+                                        <a href="{% url 'service:appointment_cancel' appointment.id %}" 
+                                           class="btn btn-sm btn-outline-danger">Cancel</a>
+                                    {% endif %}
                                 </div>
                             </div>
                         {% empty %}
@@ -173,7 +175,7 @@
             <div class="col-md-6">
                 <div class="card dashboard-card">
                     <div class="card-header">
-                        <h5 class="mb-0">Recent Reviews</h5>
+                        <h5 class="mb-0">Your recent reviews</h5>
                     </div>
                     <div class="card-body">
                         {% for review in recent_reviews %}
@@ -203,11 +205,16 @@
                     </div>
                     <div class="card-body notification-list">
                         {% for notification in notifications %}
-                            <div class="notification-item {% if not notification.is_read %}unread{% endif %}" 
+                            <div class="notification-item {% if not notification.is_read %}unread{% endif %} d-flex justify-content-between align-items-start" 
                                  data-notification-id="{{ notification.id }}">
-                                <h6 class="mb-1">{{ notification.title }}</h6>
-                                <p class="mb-1">{{ notification.message }}</p>
-                                <small class="text-muted">{{ notification.created_at|timesince }} ago</small>
+                                <div class="me-2">
+                                    <h6 class="mb-1">{{ notification.title }}</h6>
+                                    <p class="mb-1">{{ notification.message }}</p>
+                                    <small class="text-muted">{{ notification.created_at|timesince }} ago</small>
+                                </div>
+                                <button type="button" class="btn btn-sm btn-link text-danger dismiss-notification" data-notification-id="{{ notification.id }}" aria-label="Dismiss">
+                                    <i class="fas fa-times"></i>
+                                </button>
                             </div>
                         {% empty %}
                             <p class="text-muted">No notifications.</p>
@@ -233,7 +240,7 @@
                 <div class="card stats-card dashboard-card">
                     <div class="card-body">
                         <h6 class="card-title">Completion Rate</h6>
-                        <div class="stats-value">{{ completion_rate }}%</div>
+                        <div class="stats-value">{{ completion_rate|floatformat:2 }}%</div>
                     </div>
                 </div>
             </div>
@@ -259,20 +266,46 @@
                                     <h6 class="mb-0">{{ appointment.service_type.name }}</h6>
                                     <small class="text-muted">
                                         {{ appointment.scheduled_time }} - 
-                                        {{ appointment.vehicle.year }} {{ appointment.vehicle.make }} {{ appointment.vehicle.model }}
+                                        {{ appointment.vehicle.year }} {{ appointment.vehicle.make }} {{ appointment.vehicle.model }}<br>
+                                        <strong>Customer:</strong> {{ appointment.customer.base_user.user.get_full_name }}
                                     </small>
                                 </div>
-                                <div class="btn-group">
-                                    <button class="btn btn-sm btn-success" onclick="startService('{{ appointment.id }}')">
-                                        Start
-                                    </button>
-                                    <button class="btn btn-sm btn-primary" onclick="completeService('{{ appointment.id }}')">
-                                        Complete
-                                    </button>
-                                </div>
+                                {% if user.baseuser.user_type == 'TECHNICIAN' %}
+                                    {% if appointment.status == 'SCHEDULED' %}
+                                        <button class="btn btn-sm btn-success start-btn" data-id="{{ appointment.id }}" onclick="startService('{{ appointment.id }}')">Start</button>
+                                    {% elif appointment.status == 'IN_PROGRESS' %}
+                                        <button class="btn btn-sm btn-primary complete-btn" data-id="{{ appointment.id }}" onclick="completeService('{{ appointment.id }}')">Complete</button>
+                                    {% else %}
+                                        <span class="badge bg-secondary">{{ appointment.get_status_display }}</span>
+                                    {% endif %}
+                                {% else %}
+                                    <div class="btn-group">
+                                        <a href="{% url 'service:appointment_detail' appointment.id %}" class="btn btn-sm btn-outline-primary">Details</a>
+                                        {% if appointment.status == 'SCHEDULED' %}
+                                            <a href="{% url 'service:appointment_cancel' appointment.id %}" class="btn btn-sm btn-outline-danger">Cancel</a>
+                                        {% endif %}
+                                    </div>
+                                {% endif %}
                             </div>
                         {% empty %}
                             <p class="text-muted">No appointments scheduled for today.</p>
+                            {% if upcoming_appointments %}
+                                <hr>
+                                <h6 class="text-secondary">Upcoming</h6>
+                                {% for appointment in upcoming_appointments %}
+                                    <div class="d-flex align-items-center mb-3">
+                                        <div class="flex-grow-1">
+                                            <h6 class="mb-0">{{ appointment.service_type.name }}</h6>
+                                            <small class="text-muted">
+                                                {{ appointment.scheduled_date }} {{ appointment.scheduled_time }} -
+                                                {{ appointment.vehicle.year }} {{ appointment.vehicle.make }} {{ appointment.vehicle.model }}<br>
+                                                <strong>Customer:</strong> {{ appointment.customer.base_user.user.get_full_name }}
+                                            </small>
+                                        </div>
+                                        <span class="badge bg-warning">Upcoming</span>
+                                    </div>
+                                {% endfor %}
+                            {% endif %}
                         {% endfor %}
                     </div>
                 </div>
@@ -286,11 +319,16 @@
                     </div>
                     <div class="card-body notification-list">
                         {% for notification in notifications %}
-                            <div class="notification-item {% if not notification.is_read %}unread{% endif %}"
+                            <div class="notification-item {% if not notification.is_read %}unread{% endif %} d-flex justify-content-between align-items-start" 
                                  data-notification-id="{{ notification.id }}">
-                                <h6 class="mb-1">{{ notification.title }}</h6>
-                                <p class="mb-1">{{ notification.message }}</p>
-                                <small class="text-muted">{{ notification.created_at|timesince }} ago</small>
+                                <div class="me-2">
+                                    <h6 class="mb-1">{{ notification.title }}</h6>
+                                    <p class="mb-1">{{ notification.message }}</p>
+                                    <small class="text-muted">{{ notification.created_at|timesince }} ago</small>
+                                </div>
+                                <button type="button" class="btn btn-sm btn-link text-danger dismiss-notification" data-notification-id="{{ notification.id }}" aria-label="Dismiss">
+                                    <i class="fas fa-times"></i>
+                                </button>
                             </div>
                         {% empty %}
                             <p class="text-muted">No notifications.</p>
@@ -334,7 +372,7 @@
                 <div class="card stats-card dashboard-card">
                     <div class="card-body">
                         <h6 class="card-title">Today's Revenue</h6>
-                        <div class="stats-value">${{ today_revenue }}</div>
+                        <div class="stats-value">€{{ today_revenue }}</div>
                     </div>
                 </div>
             </div>
@@ -556,6 +594,31 @@
         </div>
     </div>
 </div>
+
+<!-- Complete Appointment Modal -->
+<div class="modal fade" id="completeAppointmentModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Complete Appointment</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="completeForm" method="post">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="completionComment" class="form-label">Completion Notes (optional)</label>
+                        <textarea class="form-control" id="completionComment" rows="3"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Submit</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block extra_js %}
@@ -583,7 +646,7 @@
                         beginAtZero: true,
                         ticks: {
                             callback: function(value) {
-                                return '$' + value;
+                                return '€' + value;
                             }
                         }
                     }
@@ -597,31 +660,49 @@
         updateServiceStatus(appointmentId, 'start');
     }
 
-    function completeService(appointmentId) {
-        updateServiceStatus(appointmentId, 'complete');
+    // Open modal shortcut (kept for button compatibility)
+    function completeService(appointmentId){
+        showCompleteModal(appointmentId);
     }
 
-    function updateServiceStatus(appointmentId, action) {
+    // Core helper to call back-end API and reload page
+    function updateServiceStatus(appointmentId, action, comment = '') {
+        const payload = comment ? JSON.stringify({comment: comment}) : null;
         fetch(`/service/api/appointment/${appointmentId}/${action}/`, {
             method: 'POST',
             headers: {
                 'X-CSRFToken': getCookie('csrftoken'),
                 'Content-Type': 'application/json'
-            }
+            },
+            body: payload
         })
         .then(response => response.json())
         .then(data => {
             if (data.success) {
                 location.reload();
             } else {
-                showAlert(data.error || 'An error occurred.', 'danger');
+                alert(data.error || 'An error occurred');
             }
         })
-        .catch(error => {
-            console.error('Error:', error);
-            showAlert('An error occurred while updating the service status.', 'danger');
+        .catch(err => {
+            console.error(err);
+            alert('An unexpected error occurred.');
         });
     }
+
+    let currentCompleteId = null;
+    function showCompleteModal(appointmentId){
+        currentCompleteId = appointmentId;
+        document.getElementById('completionComment').value = '';
+        new bootstrap.Modal(document.getElementById('completeAppointmentModal')).show();
+    }
+
+    document.getElementById('completeForm').addEventListener('submit', function(e){
+        e.preventDefault();
+        const comment = document.getElementById('completionComment').value;
+        updateServiceStatus(currentCompleteId, 'complete', comment);
+        bootstrap.Modal.getInstance(document.getElementById('completeAppointmentModal')).hide();
+    });
 
     // Handle message replies for secretaries
     function showReplyForm(messageId) {

@@ -6,10 +6,12 @@
     <title>{% block title %}Auto Service{% endblock %}</title>
     
     {% load static %}
+    {% load service_extras %}
     <!-- CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link href="{% static 'css/style.css' %}" rel="stylesheet">
+    <link href="{% static 'css/theme.css' %}" rel="stylesheet">
     {% block extra_css %}{% endblock %}
 </head>
 <body class="d-flex flex-column h-100">
@@ -37,13 +39,18 @@
                         </li>
                         {% if user.baseuser.user_type == 'CUSTOMER' %}
                             <li class="nav-item">
-                                <a class="nav-link" href="{% url 'service:vehicle_list' %}">
-                                    <i class="fas fa-car"></i> My Vehicles
+                                <a class="nav-link" href="{% url 'service:appointments' %}">
+                                    <i class="fas fa-calendar"></i> My Appointments
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link" href="{% url 'service:appointments' %}">
-                                    <i class="fas fa-calendar-alt"></i> My Appointments
+                                <a class="nav-link" href="{% url 'service:create_appointment' %}">
+                                    <i class="fas fa-calendar-plus"></i> Book Appointment
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'service:vehicle_register' %}">
+                                    <i class="fas fa-car"></i> Add Vehicle
                                 </a>
                             </li>
                         {% endif %}
@@ -114,6 +121,9 @@
         </div>
     {% endif %}
 
+    <!-- JS Alerts Container -->
+    <div id="alerts-container" class="container mt-3"></div>
+
     <!-- Main Content -->
     <main class="container my-4">
         {% block content %}{% endblock %}
@@ -123,24 +133,21 @@
     <footer class="footer mt-auto py-3 bg-dark text-white">
         <div class="container">
             <div class="row">
-                <div class="col-md-4">
+                <div class="col-md-6">
                     <h5>Contact Us</h5>
-                    <p>{{ repair_shop.address }}<br>
-                    Phone: {{ repair_shop.phone }}<br>
-                    Email: {{ repair_shop.email }}</p>
+                    {% if repair_shop %}
+                        <p>{{ repair_shop.address }}<br>
+                        Phone: {{ repair_shop.phone }}<br>
+                        Email: {{ repair_shop.email }}</p>
+                    {% endif %}
                 </div>
-                <div class="col-md-4">
-                    <h5>Business Hours</h5>
-                    {% for day, hours in repair_shop.business_hours.items %}
-                        <p>{{ day }}: {{ hours }}</p>
-                    {% endfor %}
-                </div>
-                <div class="col-md-4">
-                    <h5>Quick Links</h5>
-                    <ul class="list-unstyled">
-                        <li><a href="{% url 'service:landing_page' %}" class="text-white">Home</a></li>
-                        <li><a href="{% url 'service:facility_list' %}" class="text-white">Services & Facilities</a></li>
-                    </ul>
+                <div class="col-md-6">
+                    <h5>Working Hours</h5>
+                    {% if repair_shop and repair_shop.business_hours %}
+                        {% for line in repair_shop.business_hours|compress_hours %}
+                            <p>{{ line }}</p>
+                        {% endfor %}
+                    {% endif %}
                 </div>
             </div>
             <div class="row mt-3">

@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Appointment Details{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <h1 class="mb-4">Appointment Details</h1>
+
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <h5 class="card-title">{{ appointment.service_type.name }}</h5>
+            <p class="card-text">
+                <strong>Date:</strong> {{ appointment.scheduled_date }}<br>
+                <strong>Time:</strong> {{ appointment.scheduled_time }}<br>
+                <strong>Vehicle:</strong> {{ appointment.vehicle }}<br>
+                {% if appointment.assigned_technician %}
+                    <strong>Technician:</strong> {{ appointment.assigned_technician.base_user.user.get_full_name }}<br>
+                {% endif %}
+                <strong>Status:</strong> {{ appointment.get_status_display }}
+            </p>
+        </div>
+    </div>
+
+    <a href="{% url 'service:dashboard' %}" class="btn btn-secondary mt-3">
+        <i class="fas fa-arrow-left"></i> Back to Dashboard
+    </a>
+</div>
+{% endblock %} 

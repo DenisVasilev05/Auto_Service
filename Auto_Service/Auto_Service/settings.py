@@ -119,7 +119,7 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
-STATIC_URL = 'static/'
+STATIC_URL = '/static/'
 
 # Auth Settings
 LOGIN_URL = '/admin/login/'
@@ -129,3 +129,17 @@ LOGIN_REDIRECT_URL = '/'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# Static & Media configuration
+# Optional project-level static directory – include only if it exists to avoid warnings
+STATICFILES_DIRS = []
+project_static_dir = os.path.join(BASE_DIR, 'static')
+if os.path.isdir(project_static_dir):
+    STATICFILES_DIRS.append(project_static_dir)
+
+# Where collectstatic will gather files for production
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+
+# Media (user-uploaded) files
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')

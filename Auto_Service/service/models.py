@@ -158,9 +158,11 @@ class Vehicle(BaseModel):
     )
     color = models.CharField(max_length=30)
     license_plate = models.CharField(max_length=15)
+    registration_date = models.DateField(null=True, blank=True)
     next_maintenance_date = models.DateField(null=True, blank=True)
     mileage = models.PositiveIntegerField(default=0)
     last_service_date = models.DateField(null=True, blank=True)
+    image = models.ImageField(upload_to='vehicle_images/', null=True, blank=True)
 
     class Meta:
         ordering = ['-created_at']
@@ -187,6 +189,7 @@ class Facility(BaseModel):
     repair_shop = models.ForeignKey('RepairShop', on_delete=models.CASCADE, related_name='facilities')
     capacity = models.PositiveIntegerField(default=1)
     equipment = models.ManyToManyField('Equipment', blank=True)
+    image = models.ImageField(upload_to='facility_images/', null=True, blank=True)
 
     def save(self, *args, **kwargs):
         if not self.repair_shop_id:
@@ -535,3 +538,14 @@ def create_facility_schedule(sender, instance, created, **kwargs):
     """
     if created:
         Schedule.objects.create(facility=instance)
+
+@receiver(post_save, sender=Appointment)
+def update_vehicle_last_service(sender, instance, **kwargs):
+    """Ensure Vehicle.last_service_date reflects the most recent completed appointment."""
+    if instance.status == 'COMPLETED' and instance.vehicle_id:
+        # Determine service date: prefer actual_end_time date, else scheduled_date
+        service_date = (instance.actual_end_time.date() if instance.actual_end_time else instance.scheduled_date)
+        vehicle = instance.vehicle
+        if vehicle.last_service_date is None or service_date > vehicle.last_service_date:
+            vehicle.last_service_date = service_date
+            vehicle.save(update_fields=['last_service_date'])

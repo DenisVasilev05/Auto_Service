@@ -41,6 +41,9 @@ urlpatterns = [
     
     # API endpoints for AJAX requests
     path('api/facility-schedule/<uuid:facility_id>/', views.api_facility_schedule, name='api_facility_schedule'),
+    path('api/appointment/<uuid:appointment_id>/start/', views.api_appointment_start, name='api_appointment_start'),
+    path('api/appointment/<uuid:appointment_id>/complete/', views.api_appointment_complete, name='api_appointment_complete'),
     path('api/technician-schedule/<uuid:technician_id>/', views.api_technician_schedule, name='api_technician_schedule'),
     path('api/mark-notification-read/<uuid:notification_id>/', views.api_mark_notification_read, name='api_mark_notification_read'),
+    path('api/notification/<uuid:notification_id>/dismiss/', views.api_notification_dismiss, name='api_notification_dismiss'),
 ] 
