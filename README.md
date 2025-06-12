@@ -28,8 +28,16 @@ cd Auto_Service
 
 ```bash
 py -m venv venv               # Python ≥ 3.10 (This project was created with Python 3.13)
-# Windows
+# Windows (PowerShell command prompt)
 venv\Scripts\activate
+```
+!!! Important: If you get an error for unauthorized access while trying to activate the virtual environment, please run the following command to allow for script execution for the current session:
+```bash
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope Process
+```
+After this, please run the virtual environment activation command like this:
+```bash
+venv\Scripts\Activate.ps1
 ```
 
 ### 3. Install Python dependencies
